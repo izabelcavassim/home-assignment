@@ -863,7 +863,7 @@ def main():
             
             # Feature importance analysis
             logger.info("\nFeature Importance Analysis:")
-            importance_df = analyze_feature_importance(model, feature_cols, top_n=20)
+            importance_df = analyze_feature_importance(model.model, feature_cols, top_n=20)
             
             if not importance_df.empty:
                 logger.info("Top 10 Most Important Features:")
@@ -873,6 +873,11 @@ def main():
             # Save model-specific results
             model_output_dir = output_dir / model_name
             model_output_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Save trained model for reproducibility
+            model_path = model_output_dir / "trained_model.pkl"
+            model.save(str(model_path))
+            logger.info(f"Saved trained model to {model_path}")
             
             # Save feature importance
             if not importance_df.empty:
