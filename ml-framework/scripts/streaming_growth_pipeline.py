@@ -389,21 +389,37 @@ def create_visualizations(
     
     # 1. Model Comparison - Metrics Bar Chart
     if len(all_results) > 1:
-        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+        fig, axes = plt.subplots(2, 3, figsize=(18, 10))
         fig.suptitle('Model Performance Comparison', fontsize=16, fontweight='bold')
         
         models = list(all_results.keys())
-        metrics_data = {
-            'RMSE': [all_results[m]['test_metrics']['rmse'] for m in models],
-            'MAE': [all_results[m]['test_metrics']['mae'] for m in models],
-            'R²': [all_results[m]['test_metrics']['r2'] for m in models]
+        
+        # Test metrics (top row)
+        test_metrics_data = {
+            'Test RMSE': [all_results[m]['test_metrics']['rmse'] for m in models],
+            'Test MAE': [all_results[m]['test_metrics']['mae'] for m in models],
+            'Test R²': [all_results[m]['test_metrics']['r2'] for m in models]
         }
         
-        for idx, (metric_name, values) in enumerate(metrics_data.items()):
-            ax = axes[idx]
-            bars = ax.bar(models, values, alpha=0.7)
-            ax.set_title(f'Test {metric_name}', fontsize=12, fontweight='bold')
-            ax.set_ylabel(metric_name)
+        # CV metrics (bottom row)
+        cv_metrics_data = {
+            'CV RMSE': [all_results[m]['cv_scores']['rmse_mean'] for m in models],
+            'CV MAE': [all_results[m]['cv_scores']['mae_mean'] for m in models],
+            'CV R²': [all_results[m]['cv_scores']['r2_mean'] for m in models]
+        }
+        
+        cv_std_data = {
+            'CV RMSE': [all_results[m]['cv_scores']['rmse_std'] for m in models],
+            'CV MAE': [all_results[m]['cv_scores']['mae_std'] for m in models],
+            'CV R²': [all_results[m]['cv_scores']['r2_std'] for m in models]
+        }
+        
+        # Plot test metrics (top row)
+        for idx, (metric_name, values) in enumerate(test_metrics_data.items()):
+            ax = axes[0, idx]
+            bars = ax.bar(models, values, alpha=0.7, color='steelblue')
+            ax.set_title(f'{metric_name}', fontsize=12, fontweight='bold')
+            ax.set_ylabel(metric_name.split()[1])
             ax.tick_params(axis='x', rotation=45)
             
             # Add value labels on bars
@@ -413,10 +429,94 @@ def create_visualizations(
                        f'{val:.4f}',
                        ha='center', va='bottom', fontsize=9)
         
+        # Plot CV metrics with error bars (bottom row)
+        for idx, (metric_name, values) in enumerate(cv_metrics_data.items()):
+            ax = axes[1, idx]
+            stds = cv_std_data[metric_name]
+            bars = ax.bar(models, values, yerr=stds, alpha=0.7, color='coral', 
+                         capsize=5, error_kw={'linewidth': 2})
+            ax.set_title(f'{metric_name} (± std)', fontsize=12, fontweight='bold')
+            ax.set_ylabel(metric_name.split()[1])
+            ax.tick_params(axis='x', rotation=45)
+            
+            # Add value labels on bars
+            for bar, val, std in zip(bars, values, stds):
+                height = bar.get_height()
+                ax.text(bar.get_x() + bar.get_width()/2., height + std,
+                       f'{val:.4f}\n±{std:.4f}',
+                       ha='center', va='bottom', fontsize=8)
+        
         plt.tight_layout()
         plt.savefig(plots_dir / 'model_comparison_metrics.png', dpi=300, bbox_inches='tight')
         plt.close()
-        logger.info("  Created: model_comparison_metrics.png")
+        logger.info("  Created: model_comparison_metrics.png (with CV)")
+    elif len(all_results) == 1:
+        # Single model: show CV fold variance
+        model_name = list(all_results.keys())[0]
+        cv_scores = all_results[model_name]['cv_scores']
+        
+        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+        fig.suptitle(f'{model_name.replace("_", " ").title()} - Cross-Validation Performance', 
+                    fontsize=16, fontweight='bold')
+        
+        metrics = [
+            ('R²', cv_scores['r2_mean'], cv_scores['r2_std']),
+            ('RMSE', cv_scores['rmse_mean'], cv_scores['rmse_std']),
+            ('MAE', cv_scores['mae_mean'], cv_scores['mae_std'])
+        ]
+        
+        for idx, (metric_name, mean_val, std_val) in enumerate(metrics):
+            ax = axes[idx]
+            bar = ax.bar([model_name], [mean_val], yerr=[std_val], 
+                        alpha=0.7, color='coral', capsize=10, error_kw={'linewidth': 2})
+            ax.set_title(f'CV {metric_name}', fontsize=12, fontweight='bold')
+            ax.set_ylabel(metric_name)
+            ax.tick_params(axis='x', rotation=45)
+            
+            # Add value labels
+            ax.text(0, mean_val + std_val, f'{mean_val:.4f}\n±{std_val:.4f}',
+                   ha='center', va='bottom', fontsize=10)
+        
+        plt.tight_layout()
+        plt.savefig(plots_dir / 'model_comparison_metrics.png', dpi=300, bbox_inches='tight')
+        plt.close()
+        logger.info("  Created: model_comparison_metrics.png (single model CV)")
+    
+    # 1.5 CV Consistency Plot
+    if len(all_results) > 0:
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        models = list(all_results.keys())
+        x_pos = np.arange(len(models))
+        
+        # Plot test R² vs CV R² mean
+        test_r2 = [all_results[m]['test_metrics']['r2'] for m in models]
+        cv_r2_mean = [all_results[m]['cv_scores']['r2_mean'] for m in models]
+        cv_r2_std = [all_results[m]['cv_scores']['r2_std'] for m in models]
+        
+        ax.scatter(x_pos, test_r2, s=100, label='Test R²', color='steelblue', marker='o', zorder=3)
+        ax.errorbar(x_pos, cv_r2_mean, yerr=cv_r2_std, fmt='o', label='CV R² (mean ± std)', 
+                   color='coral', capsize=5, capthick=2, markersize=8, zorder=2)
+        
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels([m.replace('_', ' ').title() for m in models], rotation=45, ha='right')
+        ax.set_ylabel('R² Score', fontsize=12)
+        ax.set_title('Model Stability: Test R² vs Cross-Validation R²\n' +
+                    '(Good models have test score within CV error bars)',
+                    fontsize=13, fontweight='bold')
+        ax.legend(loc='best', fontsize=10)
+        ax.grid(True, alpha=0.3, axis='y')
+        
+        # Add note
+        note = ("Interpretation: If test R² falls within CV error bars, the model generalizes well.\n"
+               "Large gap suggests overfitting or distributional shift in test period.")
+        ax.text(0.5, -0.25, note, transform=ax.transAxes, 
+               ha='center', fontsize=9, style='italic', color='gray')
+        
+        plt.tight_layout()
+        plt.savefig(plots_dir / 'cv_vs_test_performance.png', dpi=300, bbox_inches='tight')
+        plt.close()
+        logger.info("  Created: cv_vs_test_performance.png")
     
     # 2. Per-Model Visualizations
     for model_name, results in all_results.items():
@@ -662,6 +762,15 @@ def main():
         
         logger.info("Applied StandardScaler to features")
         
+        # Phase 4.5: Cross-Validation (TimeSeriesSplit)
+        logger.info("\n" + "=" * 80)
+        logger.info("Phase 4.5: Time Series Cross-Validation")
+        logger.info("=" * 80)
+        
+        tscv = TimeSeriesSplit(n_splits=args.cv_folds)
+        logger.info(f"Using {args.cv_folds}-fold TimeSeriesSplit cross-validation")
+        logger.info("Note: Each fold trains on past data and validates on future data (no temporal leakage)")
+        
         # Determine which models to run
         model_config = {
             'linear_regression': {'model_type': 'linear_regression'},
@@ -689,7 +798,47 @@ def main():
             if not config:
                 raise ValueError(f"Unknown model type: {model_name}")
             
-            # Train model
+            # Cross-Validation Evaluation
+            logger.info(f"\nRunning {args.cv_folds}-fold cross-validation...")
+            cv_scores = {'r2': [], 'rmse': [], 'mae': []}
+            
+            fold_num = 1
+            for train_idx, val_idx in tscv.split(X_train_scaled):
+                # Split data for this fold
+                X_cv_train, X_cv_val = X_train_scaled[train_idx], X_train_scaled[val_idx]
+                y_cv_train, y_cv_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
+                
+                # Train model on this fold
+                cv_model = ModelRegistry.create(**config)
+                cv_model.fit(X_cv_train, y_cv_train)
+                
+                # Evaluate on validation fold
+                y_cv_pred = cv_model.predict(X_cv_val)
+                fold_metrics = calculate_metrics(y_cv_val, y_cv_pred)
+                
+                cv_scores['r2'].append(fold_metrics['r2'])
+                cv_scores['rmse'].append(fold_metrics['rmse'])
+                cv_scores['mae'].append(fold_metrics['mae'])
+                
+                logger.info(f"  Fold {fold_num}: R²={fold_metrics['r2']:.4f}, "
+                          f"RMSE={fold_metrics['rmse']:.4f}, MAE={fold_metrics['mae']:.4f}")
+                fold_num += 1
+            
+            # Calculate CV statistics
+            cv_r2_mean = np.mean(cv_scores['r2'])
+            cv_r2_std = np.std(cv_scores['r2'])
+            cv_rmse_mean = np.mean(cv_scores['rmse'])
+            cv_rmse_std = np.std(cv_scores['rmse'])
+            cv_mae_mean = np.mean(cv_scores['mae'])
+            cv_mae_std = np.std(cv_scores['mae'])
+            
+            logger.info(f"\nCross-Validation Results ({args.cv_folds} folds):")
+            logger.info(f"  R²:   {cv_r2_mean:.4f} ± {cv_r2_std:.4f}")
+            logger.info(f"  RMSE: {cv_rmse_mean:.4f} ± {cv_rmse_std:.4f}")
+            logger.info(f"  MAE:  {cv_mae_mean:.4f} ± {cv_mae_std:.4f}")
+            
+            # Train final model on full training set
+            logger.info(f"\nTraining final {model_name} model on full training set...")
             model = ModelRegistry.create(**config)
             model.fit(X_train_scaled, y_train)
             logger.info(f"Trained {model_name} model")
@@ -744,6 +893,15 @@ def main():
             
             # Store results for comparison
             all_results[model_name] = {
+                'cv_scores': {
+                    'r2_mean': cv_r2_mean,
+                    'r2_std': cv_r2_std,
+                    'rmse_mean': cv_rmse_mean,
+                    'rmse_std': cv_rmse_std,
+                    'mae_mean': cv_mae_mean,
+                    'mae_std': cv_mae_std,
+                    'n_folds': args.cv_folds
+                },
                 'train_metrics': train_metrics,
                 'test_metrics': test_metrics,
                 'feature_importance': importance_df.to_dict('records') if not importance_df.empty else []
@@ -758,6 +916,10 @@ def main():
         comparison_df = pd.DataFrame([
             {
                 'model': model_name,
+                'cv_r2_mean': results['cv_scores']['r2_mean'],
+                'cv_r2_std': results['cv_scores']['r2_std'],
+                'cv_rmse_mean': results['cv_scores']['rmse_mean'],
+                'cv_rmse_std': results['cv_scores']['rmse_std'],
                 'train_rmse': results['train_metrics']['rmse'],
                 'train_mae': results['train_metrics']['mae'],
                 'train_r2': results['train_metrics']['r2'],

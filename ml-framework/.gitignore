@@ -130,7 +130,7 @@ dmypy.json
 *~
 
 # Data files
-data/
+#data/
 *.csv
 *.parquet
 *.h5
@@ -144,7 +144,7 @@ models/
 *.pth
 
 # Results and outputs
-results/
+#results/
 outputs/
 *.json
 experiments/

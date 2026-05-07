@@ -34,7 +34,6 @@
 - **[src/model.py](src/model.py)** (383 lines)
   - `BaseModel` - Abstract base class
   - `ScikitLearnModel` - Scikit-learn wrapper
-  - `PyTorchModel` - PyTorch wrapper
   - `ModelRegistry` - Model factory
 
 #### Training Engine
