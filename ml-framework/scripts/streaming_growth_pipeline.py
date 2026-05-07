@@ -41,6 +41,7 @@ from src.utils import setup_logging
 from src.streaming_data import StreamingDataLoader
 from src.streaming_features import StreamingGrowthFeatures
 from src.model import ModelRegistry
+from src.html_report import generate_html_report
 
 
 def setup_parser() -> argparse.ArgumentParser:
@@ -86,10 +87,16 @@ Examples:
     # Feature engineering arguments
     parser.add_argument('--target-col', type=str, default='number_of_streams',
                         help='Target column for growth prediction')
+    parser.add_argument('--use-cumulative', action='store_true',
+                        help='Use cumulative streams instead of growth rates (eliminates outliers)')
+    parser.add_argument('--include-cumulative-features', action='store_true',
+                        help='Include cumulative streams as features (for comparison only - causes data leakage!)')
     parser.add_argument('--lags', type=int, nargs='+', default=[1, 2, 4],
                         help='Lag periods for features (weeks)')
     parser.add_argument('--rolling-windows', type=int, nargs='+', default=[4, 8],
                         help='Rolling window sizes (weeks)')
+    parser.add_argument('--prediction-horizons', type=int, nargs='+', default=[1, 4, 8],
+                        help='Prediction horizons for multi-horizon mode (weeks)')
     
     # Model arguments
     parser.add_argument('--model', type=str, 
@@ -274,7 +281,8 @@ def create_visualizations(
     logger: logging.Logger,
     X_train: pd.DataFrame = None,
     y_train: pd.Series = None,
-    feature_cols: List[str] = None
+    feature_cols: List[str] = None,
+    config: Dict = None
 ):
     """
     Create comprehensive visualizations for model results.
@@ -286,11 +294,23 @@ def create_visualizations(
         X_train: Training features (optional, for contribution analysis)
         y_train: Training target (optional, for contribution analysis)
         feature_cols: Feature names (optional)
+        config: Pipeline configuration settings (optional)
     """
     plots_dir = output_dir / "plots"
     plots_dir.mkdir(parents=True, exist_ok=True)
     
     logger.info(f"Creating visualizations in {plots_dir}")
+    
+    # Flatten multi-horizon results for visualization
+    flattened_results = {}
+    for model_name, results in all_results.items():
+        if results.get('is_multihorizon', False):
+            # Multi-horizon: create separate entries for each horizon
+            for horizon, horizon_results in results['horizons'].items():
+                flattened_results[f"{model_name}_{horizon}"] = horizon_results
+        else:
+            # Regular: use as-is
+            flattened_results[model_name] = results
     
     # 0. Feature Contribution Analysis (if data provided)
     if X_train is not None and y_train is not None and feature_cols is not None:
@@ -583,33 +603,118 @@ def create_visualizations(
             plt.close()
             
             # 2c. Time Series of Predictions (sample of artists)
-            sample_artists = pred_df['artist_id'].unique()[:5]  # Top 5 artists
+            # Select artists with most test data points for better visualization
+            artist_counts = pred_df['artist_id'].value_counts()
+            sample_artists = artist_counts.head(8).index.tolist()  # Top 8 artists by data points
             
             fig, axes = plt.subplots(len(sample_artists), 1, 
-                                    figsize=(12, 3*len(sample_artists)))
+                                    figsize=(14, 3*len(sample_artists)))
             if len(sample_artists) == 1:
                 axes = [axes]
             
-            fig.suptitle(f'{model_name.replace("_", " ").title()} - Sample Artist Predictions', 
+            fig.suptitle(f'{model_name.replace("_", " ").title()} - Time Series Predictions per Artist\n' +
+                        f'(Top {len(sample_artists)} Artists by Test Data Points)', 
                         fontsize=14, fontweight='bold')
             
             for idx, artist_id in enumerate(sample_artists):
                 artist_data = pred_df[pred_df['artist_id'] == artist_id].sort_values('week')
                 
-                axes[idx].plot(range(len(artist_data)), artist_data['y_true'], 
-                             'o-', label='Actual', alpha=0.7, linewidth=2)
-                axes[idx].plot(range(len(artist_data)), artist_data['y_pred'], 
-                             's-', label='Predicted', alpha=0.7, linewidth=2)
-                axes[idx].set_ylabel('Streams', fontsize=10)
-                axes[idx].set_title(f'Artist ID: {artist_id}', fontsize=11)
-                axes[idx].legend(loc='best')
-                axes[idx].grid(True, alpha=0.3)
+                # Calculate per-artist R²
+                from sklearn.metrics import r2_score
+                artist_r2 = r2_score(artist_data['y_true'], artist_data['y_pred'])
+                artist_mae = np.abs(artist_data['y_true'] - artist_data['y_pred']).mean()
                 
-                if idx == len(sample_artists) - 1:
+                # Plot with different styles
+                axes[idx].plot(range(len(artist_data)), artist_data['y_true'], 
+                             'o-', label='Actual', alpha=0.8, linewidth=2.5, 
+                             markersize=6, color='#2E86AB')
+                axes[idx].plot(range(len(artist_data)), artist_data['y_pred'], 
+                             's--', label='Predicted', alpha=0.8, linewidth=2, 
+                             markersize=5, color='#A23B72')
+                
+                # Shade the error region
+                axes[idx].fill_between(range(len(artist_data)), 
+                                      artist_data['y_true'], 
+                                      artist_data['y_pred'],
+                                      alpha=0.2, color='gray')
+                
+                axes[idx].set_ylabel('Stream Count', fontsize=10, fontweight='bold')
+                axes[idx].set_title(f'Artist {artist_id} | R²: {artist_r2:.4f} | MAE: {artist_mae:.4f} | n={len(artist_data)} weeks', 
+                                   fontsize=11, fontweight='bold')
+                axes[idx].legend(loc='best', fontsize=9)
+                axes[idx].grid(True, alpha=0.3, linestyle='--')
+                
+                # Add week labels if available
+                if 'week' in artist_data.columns and len(artist_data) <= 20:
+                    # Show week labels if not too many points
+                    axes[idx].set_xticks(range(len(artist_data)))
+                    axes[idx].set_xticklabels(artist_data['week'].values, 
+                                             rotation=45, ha='right', fontsize=8)
+                    axes[idx].set_xlabel('Week', fontsize=10)
+                else:
                     axes[idx].set_xlabel('Week Index', fontsize=10)
+                
+                # Add horizontal line at y=0 if data crosses zero
+                if artist_data['y_true'].min() < 0 or artist_data['y_pred'].min() < 0:
+                    axes[idx].axhline(y=0, color='black', linestyle='-', linewidth=0.5, alpha=0.5)
             
             plt.tight_layout()
             plt.savefig(model_plots_dir / 'time_series_predictions.png', dpi=300, bbox_inches='tight')
+            plt.close()
+            
+            # 2c2. Create an aggregated view across all artists
+            fig, axes = plt.subplots(2, 1, figsize=(14, 10))
+            fig.suptitle(f'{model_name.replace("_", " ").title()} - Aggregate Time Series View', 
+                        fontsize=14, fontweight='bold')
+            
+            # Top panel: All predictions scatter
+            axes[0].scatter(pred_df['y_true'], pred_df['y_pred'], 
+                          alpha=0.4, s=30, c=pred_df['artist_id'].astype('category').cat.codes,
+                          cmap='tab20')
+            
+            # Perfect prediction line
+            min_val = min(pred_df['y_true'].min(), pred_df['y_pred'].min())
+            max_val = max(pred_df['y_true'].max(), pred_df['y_pred'].max())
+            axes[0].plot([min_val, max_val], [min_val, max_val], 'r--', lw=2, 
+                        label='Perfect Prediction', alpha=0.8)
+            
+            axes[0].set_xlabel('Actual Stream Count', fontsize=11, fontweight='bold')
+            axes[0].set_ylabel('Predicted Stream Count', fontsize=11, fontweight='bold')
+            axes[0].set_title('All Test Predictions (colored by artist)', fontsize=12)
+            axes[0].legend(fontsize=10)
+            axes[0].grid(True, alpha=0.3)
+            
+            # Bottom panel: Prediction errors over time
+            if 'week' in pred_df.columns:
+                # Group by week and calculate metrics
+                weekly_metrics = pred_df.groupby('week', group_keys=False).apply(
+                    lambda x: pd.Series({
+                        'mae': np.abs(x['y_true'] - x['y_pred']).mean(),
+                        'rmse': np.sqrt(((x['y_true'] - x['y_pred'])**2).mean()),
+                        'count': len(x)
+                    }), include_groups=False
+                ).reset_index()
+                
+                axes[1].plot(range(len(weekly_metrics)), weekly_metrics['mae'], 
+                           'o-', label='MAE', linewidth=2, markersize=6, color='#2E86AB')
+                axes[1].plot(range(len(weekly_metrics)), weekly_metrics['rmse'], 
+                           's-', label='RMSE', linewidth=2, markersize=6, color='#A23B72')
+                
+                axes[1].set_xlabel('Week', fontsize=11, fontweight='bold')
+                axes[1].set_ylabel('Error Magnitude', fontsize=11, fontweight='bold')
+                axes[1].set_title(f'Prediction Error by Week (n={len(pred_df)} predictions across {len(weekly_metrics)} weeks)', 
+                                fontsize=12)
+                axes[1].legend(fontsize=10)
+                axes[1].grid(True, alpha=0.3)
+                
+                # Add week labels if not too many
+                if len(weekly_metrics) <= 20:
+                    axes[1].set_xticks(range(len(weekly_metrics)))
+                    axes[1].set_xticklabels(weekly_metrics['week'].values, 
+                                          rotation=45, ha='right', fontsize=9)
+            
+            plt.tight_layout()
+            plt.savefig(model_plots_dir / 'time_series_aggregate.png', dpi=300, bbox_inches='tight')
             plt.close()
         
         # 2d. Model-Specific Feature Importance Plot
@@ -650,6 +755,117 @@ def create_visualizations(
             plt.close()
         
         logger.info(f"  Created visualizations for {model_name}")
+    
+    # Create combined feature importance comparison across all models
+    if len(flattened_results) > 0:
+        logger.info("\nCreating combined feature importance comparison...")
+        
+        # Collect feature importance from all models
+        all_feature_importance = {}
+        for model_name, results in flattened_results.items():
+            feature_importance = results.get('feature_importance')
+            if feature_importance is not None:
+                # Handle both DataFrame and list formats
+                if isinstance(feature_importance, pd.DataFrame):
+                    fi_df = feature_importance
+                elif isinstance(feature_importance, list) and len(feature_importance) > 0:
+                    fi_df = pd.DataFrame(feature_importance)
+                else:
+                    fi_df = None
+                
+                if fi_df is not None and not fi_df.empty:
+                    all_feature_importance[model_name] = fi_df
+        
+        if len(all_feature_importance) > 0:
+            # Get top N features across all models
+            top_n = 15
+            all_features = set()
+            for fi_df in all_feature_importance.values():
+                all_features.update(fi_df['feature'].head(top_n).tolist())
+            
+            # Create comparison dataframe
+            comparison_data = []
+            for feature in all_features:
+                row = {'feature': feature}
+                for model_name, fi_df in all_feature_importance.items():
+                    # Find importance for this feature in this model
+                    feature_row = fi_df[fi_df['feature'] == feature]
+                    if not feature_row.empty:
+                        row[model_name] = feature_row['importance'].values[0]
+                    else:
+                        row[model_name] = 0.0
+                comparison_data.append(row)
+            
+            comparison_df = pd.DataFrame(comparison_data)
+            
+            # Sort by average importance across models
+            model_cols = [col for col in comparison_df.columns if col != 'feature']
+            comparison_df['avg_importance'] = comparison_df[model_cols].mean(axis=1)
+            comparison_df = comparison_df.sort_values('avg_importance', ascending=False).head(top_n)
+            
+            # Create grouped bar plot
+            fig, ax = plt.subplots(figsize=(14, 10))
+            
+            features = comparison_df['feature'].tolist()
+            x = np.arange(len(features))
+            width = 0.8 / len(model_cols) if len(model_cols) > 1 else 0.6
+            
+            colors = plt.cm.Set3(np.linspace(0, 1, len(model_cols)))
+            
+            for idx, model_name in enumerate(model_cols):
+                values = comparison_df[model_name].tolist()
+                offset = (idx - len(model_cols)/2) * width + width/2
+                bars = ax.barh(x + offset, values, width, label=model_name.replace('_', ' ').title(),
+                             alpha=0.8, color=colors[idx])
+                
+                # Add value labels for significant values
+                for i, (bar, val) in enumerate(zip(bars, values)):
+                    if val > 0.01:  # Only label if importance > 0.01
+                        ax.text(val, bar.get_y() + bar.get_height()/2, f'{val:.3f}',
+                               ha='left', va='center', fontsize=7, alpha=0.7)
+            
+            ax.set_yticks(x)
+            ax.set_yticklabels(features, fontsize=10)
+            ax.set_xlabel('Feature Importance', fontsize=12, fontweight='bold')
+            ax.set_title(f'Feature Importance Comparison Across Models\n' +
+                        f'(Top {len(features)} Features by Average Importance)',
+                        fontsize=14, fontweight='bold')
+            ax.legend(loc='lower right', fontsize=10)
+            ax.grid(True, alpha=0.3, axis='x')
+            
+            # Add interpretation note
+            note = ("Features shown consistently across models indicate robust predictors.\n"
+                   "Model-specific importance differences reveal algorithmic preferences.")
+            ax.text(0.5, -0.12, note, transform=ax.transAxes,
+                   ha='center', fontsize=9, style='italic', color='gray')
+            
+            plt.tight_layout()
+            plt.savefig(plots_dir / 'combined_feature_importance.png', dpi=300, bbox_inches='tight')
+            plt.close()
+            logger.info("  Created: combined_feature_importance.png")
+            
+            # Save comparison table
+            comparison_df.drop('avg_importance', axis=1).to_csv(
+                plots_dir / 'feature_importance_comparison.csv', index=False
+            )
+            logger.info("  Saved: feature_importance_comparison.csv")
+        else:
+            logger.info("  No feature importance data available for comparison")
+    
+    # Generate HTML Report with all settings and results
+    if config:
+        logger.info("\nGenerating HTML summary report...")
+        html_file = generate_html_report(
+            all_results=all_results,
+            flattened_results=flattened_results,
+            output_dir=output_dir,
+            plots_dir=plots_dir,
+            config=config,
+            feature_cols=feature_cols,
+            X_train=X_train
+        )
+        logger.info(f"  Created: analysis_report.html")
+        logger.info(f"  Open in browser: file://{html_file.absolute()}")
     
     logger.info(f"All visualizations saved to {plots_dir}")
     return plots_dir
@@ -709,7 +925,9 @@ def main():
         feature_engineer = StreamingGrowthFeatures(
             target_col=args.target_col,
             lags=args.lags,
-            rolling_windows=args.rolling_windows
+            rolling_windows=args.rolling_windows,
+            use_cumulative=args.use_cumulative,
+            include_cumulative_features=args.include_cumulative_features
         )
         
         df_features, feature_cols = feature_engineer.engineer_features(df)
@@ -965,13 +1183,32 @@ def main():
         logger.info("Phase 8: Creating Visualizations")
         logger.info("=" * 80)
         
+        # Prepare configuration dictionary
+        pipeline_config = {
+            'data_dir': getattr(args, 'data_dir', 'data'),
+            'artist_sample_size': getattr(args, 'artist_sample_size', 100),
+            'seed': getattr(args, 'seed', 42),
+            'model': getattr(args, 'model', 'linear_regression'),
+            'target_col': getattr(args, 'target_col', 'number_of_streams'),
+            'use_cumulative': getattr(args, 'use_cumulative', False),
+            'include_cumulative_features': getattr(args, 'include_cumulative_features', False),
+            'multi_horizon': getattr(args, 'multi_horizon', False),
+            'prediction_horizons': getattr(args, 'prediction_horizons', [1]),
+            'lags': getattr(args, 'lags', [1, 2, 4]),
+            'rolling_windows': getattr(args, 'rolling_windows', [4, 8]),
+            'outlier_method': getattr(args, 'outlier_method', 'log_transform'),
+            'cv_folds': getattr(args, 'cv_folds', 5),
+            'test_split': 0.2  # Fixed test split ratio
+        }
+        
         plots_dir = create_visualizations(
             all_results=all_results, 
             output_dir=output_dir, 
             logger=logger,
             X_train=X_train,
             y_train=y_train,
-            feature_cols=feature_cols
+            feature_cols=feature_cols,
+            config=pipeline_config
         )
         
         logger.info("\n" + "=" * 80)

@@ -1,0 +1,16 @@
+feature,random_forest
+st_num_tickets_lag2,0.11572491887041299
+st_num_tickets_roll8_mean,0.1108946144756394
+st_num_tickets_roll4_mean,0.10541411626807788
+st_num_tickets_lag4,0.10068344623904452
+st_num_tickets_lag1,0.06855868989747135
+engagement_rate_roll8_mean,0.06423182321298226
+follower_lang_pt_lag4,0.04533532384568121
+engagement_rate_roll4_std,0.040274680862023265
+follower_lang_pt_lag1,0.027951331935107546
+engagement_rate_roll4_mean,0.027683885320261108
+follower_lang_fr_lag1,0.024252604709968678
+follower_african_american_lag2,0.020436744029273014
+engagement_rate_roll8_std,0.018180231259108077
+dma_count_streams_roll8_mean,0.01577613356313019
+follower_lang_pt_lag2,0.013649577556546723

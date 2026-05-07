@@ -29,7 +29,10 @@ class StreamingGrowthFeatures:
         target_col: str = 'number_of_streams',
         lags: List[int] = [1, 2, 4],
         rolling_windows: List[int] = [4, 8],
-        min_periods_pct: float = 0.5
+        min_periods_pct: float = 0.5,
+        prediction_horizons: List[int] = [1],
+        use_cumulative: bool = False,
+        include_cumulative_features: bool = False
     ):
         """
         Initialize feature engineering pipeline.
@@ -39,16 +42,28 @@ class StreamingGrowthFeatures:
             lags: Lag periods for features (in weeks)
             rolling_windows: Window sizes for rolling aggregates
             min_periods_pct: Minimum fraction of periods required for rolling stats
+            prediction_horizons: Multiple horizons to predict (in weeks)
+            use_cumulative: If True, predict cumulative streams instead of growth rates
+            include_cumulative_features: If True, include cumulative as features (causes leakage!)
         """
         self.target_col = target_col
         self.lags = sorted(lags)
         self.rolling_windows = sorted(rolling_windows)
         self.min_periods_pct = min_periods_pct
+        self.prediction_horizons = sorted(prediction_horizons) if prediction_horizons else [1]
+        self.use_cumulative = use_cumulative
+        self.include_cumulative_features = include_cumulative_features
         
         logger.info("Initialized StreamingGrowthFeatures:")
         logger.info(f"  Target column: {self.target_col}")
         logger.info(f"  Lags: {self.lags}")
         logger.info(f"  Rolling windows: {self.rolling_windows}")
+        logger.info(f"  Prediction horizons: {self.prediction_horizons}")
+        logger.info(f"  Use cumulative: {self.use_cumulative}")
+        logger.info(f"  Include cumulative features: {self.include_cumulative_features}")
+        if self.use_cumulative and self.include_cumulative_features:
+            logger.warning("  ⚠️  WARNING: Including cumulative features causes data leakage!")
+            logger.warning("     Use only for comparison analysis, not production!")
     
     def calculate_growth_rate(
         self,
@@ -259,16 +274,54 @@ class StreamingGrowthFeatures:
         
         # Identify numeric columns for feature engineering
         numeric_cols = result_df.select_dtypes(include=[np.number]).columns.tolist()
-        # Exclude ID and target from feature engineering
-        numeric_cols = [c for c in numeric_cols if c not in ['artist_id', 'week', self.target_col]]
+        # Exclude ID, week, and target from feature engineering
+        exclude_cols = ['artist_id', 'week', self.target_col]
+        
+        # IMPORTANT: If using cumulative mode, exclude cumulative column from features
+        # to prevent data leakage (cumulative_t is trivially predictable from cumulative_{t-1})
+        # UNLESS user explicitly requests it for comparison analysis
+        if self.use_cumulative and 'cleaned_cumulative_spotify_streams' in result_df.columns:
+            if not self.include_cumulative_features:
+                exclude_cols.append('cleaned_cumulative_spotify_streams')
+                logger.info("  Excluding cumulative streams from features (prevents leakage)")
+            else:
+                logger.warning("  ⚠️  Including cumulative streams in features (DATA LEAKAGE!)")
+                logger.warning("     R² will be artificially high. Use only for comparison!")
+        
+        numeric_cols = [c for c in numeric_cols if c not in exclude_cols]
         
         logger.info(f"Engineering features for {len(numeric_cols)} numeric columns")
         
-        # 1. Create target variable (growth in streaming)
-        result_df[f'{self.target_col}_target'] = self.calculate_growth_rate(
-            result_df, self.target_col, periods=1
-        )
-        logger.info(f"Created target: {self.target_col}_target")
+        # 1. Create target variables
+        if self.use_cumulative:
+            # Use cumulative streams (if available) - better for avoiding outliers
+            cumulative_col = 'cleaned_cumulative_spotify_streams'
+            if cumulative_col in result_df.columns:
+                logger.info("Using cumulative streams as target")
+                for horizon in self.prediction_horizons:
+                    target_name = f'{cumulative_col}_target_{horizon}w'
+                    # Future cumulative value (horizon weeks ahead)
+                    result_df[target_name] = result_df.groupby('artist_id')[cumulative_col].shift(-horizon)
+                    logger.info(f"Created target: {target_name} (predicting cumulative streams {horizon} weeks ahead)")
+                
+                # Keep default target for backward compatibility  
+                result_df[f'{self.target_col}_target'] = result_df[f'{cumulative_col}_target_1w']
+            else:
+                logger.warning(f"cumulative column not found, falling back to growth rates")
+                self.use_cumulative = False
+        
+        if not self.use_cumulative:
+            # Use growth rates (original behavior)
+            logger.info("Using growth rates as target")
+            for horizon in self.prediction_horizons:
+                target_name = f'{self.target_col}_target_{horizon}w'
+                result_df[target_name] = self.calculate_growth_rate(
+                    result_df, self.target_col, periods=horizon
+                )
+                logger.info(f"Created target: {target_name} (predicting {horizon}-week growth)")
+            
+            # Keep default target for backward compatibility
+            result_df[f'{self.target_col}_target'] = result_df[f'{self.target_col}_target_1w']
         
         # 2. Create lagged features (prevent leakage)
         key_cols = [c for c in numeric_cols if any(

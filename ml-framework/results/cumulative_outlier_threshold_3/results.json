@@ -1,0 +1,358 @@
+{
+  "config": {
+    "data_dir": "data",
+    "output": "results/cumulative_outlier_threshold_3",
+    "artist_sample_size": 100,
+    "min_weeks": 20,
+    "target_col": "number_of_streams",
+    "use_cumulative": true,
+    "include_cumulative_features": false,
+    "lags": [
+      1,
+      2,
+      4
+    ],
+    "rolling_windows": [
+      4,
+      8
+    ],
+    "prediction_horizons": [
+      1,
+      4,
+      8
+    ],
+    "model": "all",
+    "cv_folds": 5,
+    "seed": 42,
+    "impute_missing": false,
+    "outlier_method": "log_transform",
+    "outlier_threshold": 3.0,
+    "log_level": "INFO"
+  },
+  "data_summary": {
+    "n_artists": 100,
+    "n_weeks": 260,
+    "date_range": [
+      "2020-W40",
+      "2025-W39"
+    ],
+    "n_features": 71
+  },
+  "models": {
+    "linear_regression": {
+      "cv_scores": {
+        "r2_mean": -32.04022015584538,
+        "r2_std": 34.93023260026406,
+        "rmse_mean": 2.819133977078553,
+        "rmse_std": 1.7160164302201761,
+        "mae_mean": 1.4831288157274891,
+        "mae_std": 0.8945361931360732,
+        "n_folds": 5
+      },
+      "train_metrics": {
+        "rmse": 0.3746839271649292,
+        "mae": 0.2825324359409184,
+        "r2": 0.7856643693690902,
+        "n_samples": 468
+      },
+      "test_metrics": {
+        "rmse": 0.6100807807205103,
+        "mae": 0.4809813488020286,
+        "r2": 0.14932268855345832,
+        "n_samples": 117
+      },
+      "feature_importance": [
+        {
+          "feature": "follower_white_lag4",
+          "importance": 40840.05721144349
+        },
+        {
+          "feature": "follower_hispanic_lag4",
+          "importance": 38570.19586282241
+        },
+        {
+          "feature": "follower_african_american_lag4",
+          "importance": 27297.198185888563
+        },
+        {
+          "feature": "follower_asian_lag4",
+          "importance": 19773.637262980676
+        },
+        {
+          "feature": "follower_white_lag2",
+          "importance": 11977.497233975671
+        },
+        {
+          "feature": "follower_hispanic_lag2",
+          "importance": 11683.653399786588
+        },
+        {
+          "feature": "follower_african_american_lag2",
+          "importance": 6654.359594906928
+        },
+        {
+          "feature": "follower_asian_lag2",
+          "importance": 5466.978685597914
+        },
+        {
+          "feature": "follower_white_lag1",
+          "importance": 4139.709019313904
+        },
+        {
+          "feature": "follower_hispanic_lag1",
+          "importance": 4021.1174363586024
+        },
+        {
+          "feature": "follower_african_american_lag1",
+          "importance": 2278.728661666493
+        },
+        {
+          "feature": "follower_asian_lag1",
+          "importance": 2071.524729839022
+        },
+        {
+          "feature": "dma_count_streams_lag4",
+          "importance": 1.3323299645997515
+        },
+        {
+          "feature": "dma_count_streams_roll8_mean",
+          "importance": 0.9003345510568579
+        },
+        {
+          "feature": "engagement_rate_roll8_std",
+          "importance": 0.8210825498226768
+        },
+        {
+          "feature": "engagement_rate_roll4_std",
+          "importance": 0.5203187374536355
+        },
+        {
+          "feature": "dma_count_streams_lag1",
+          "importance": 0.48550268135948527
+        },
+        {
+          "feature": "follower_lang_es_lag4",
+          "importance": 0.43149673053460286
+        },
+        {
+          "feature": "follower_lang_es_lag2",
+          "importance": 0.3315982351531953
+        },
+        {
+          "feature": "follower_lang_de_lag1",
+          "importance": 0.2635854215877771
+        }
+      ]
+    },
+    "random_forest": {
+      "cv_scores": {
+        "r2_mean": 0.4413710848552804,
+        "r2_std": 0.2521644433219021,
+        "rmse_mean": 0.5018219781101939,
+        "rmse_std": 0.11004095749555563,
+        "mae_mean": 0.37303445199201946,
+        "mae_std": 0.08015830840360928,
+        "n_folds": 5
+      },
+      "train_metrics": {
+        "rmse": 0.07381874357184458,
+        "mae": 0.03759723933886431,
+        "r2": 0.9916804939081729,
+        "n_samples": 468
+      },
+      "test_metrics": {
+        "rmse": 0.29150017953403173,
+        "mae": 0.19775110666570925,
+        "r2": 0.8057916870771922,
+        "n_samples": 117
+      },
+      "feature_importance": [
+        {
+          "feature": "st_num_tickets_roll8_mean",
+          "importance": 0.16313729692960555
+        },
+        {
+          "feature": "st_num_tickets_lag2",
+          "importance": 0.10115313444347312
+        },
+        {
+          "feature": "st_num_tickets_lag4",
+          "importance": 0.08553928030993595
+        },
+        {
+          "feature": "st_num_tickets_lag1",
+          "importance": 0.0784218252012595
+        },
+        {
+          "feature": "st_num_tickets_roll4_mean",
+          "importance": 0.075883944070353
+        },
+        {
+          "feature": "engagement_rate_roll8_mean",
+          "importance": 0.06700663792124449
+        },
+        {
+          "feature": "follower_lang_pt_lag4",
+          "importance": 0.05936412100177805
+        },
+        {
+          "feature": "engagement_rate_roll4_std",
+          "importance": 0.03542151703898714
+        },
+        {
+          "feature": "follower_lang_pt_lag1",
+          "importance": 0.025550972007543166
+        },
+        {
+          "feature": "engagement_rate_roll8_std",
+          "importance": 0.024966283938590766
+        },
+        {
+          "feature": "engagement_rate_roll4_mean",
+          "importance": 0.02452805972699711
+        },
+        {
+          "feature": "follower_lang_fr_lag1",
+          "importance": 0.024415253850314858
+        },
+        {
+          "feature": "follower_lang_pt_lag2",
+          "importance": 0.013841788967017227
+        },
+        {
+          "feature": "dma_count_streams_roll8_mean",
+          "importance": 0.013622972658760165
+        },
+        {
+          "feature": "follower_african_american_lag1",
+          "importance": 0.012696381945930391
+        },
+        {
+          "feature": "follower_african_american_lag2",
+          "importance": 0.012538112422882388
+        },
+        {
+          "feature": "follower_white_lag4",
+          "importance": 0.011337789609727708
+        },
+        {
+          "feature": "follower_lang_fr_lag2",
+          "importance": 0.010612479193407463
+        },
+        {
+          "feature": "follower_white_lag2",
+          "importance": 0.010189045882983349
+        },
+        {
+          "feature": "follower_lang_fr_lag4",
+          "importance": 0.00952917988662633
+        }
+      ]
+    },
+    "gradient_boosting": {
+      "cv_scores": {
+        "r2_mean": 0.3738470795326008,
+        "r2_std": 0.32400457281341094,
+        "rmse_mean": 0.5183800928598743,
+        "rmse_std": 0.12180751425766717,
+        "mae_mean": 0.3736170141417859,
+        "mae_std": 0.09639481421425838,
+        "n_folds": 5
+      },
+      "train_metrics": {
+        "rmse": 0.07947810279503059,
+        "mae": 0.05891170291261284,
+        "r2": 0.9903559549763619,
+        "n_samples": 468
+      },
+      "test_metrics": {
+        "rmse": 0.3426832357980409,
+        "mae": 0.24012952936963256,
+        "r2": 0.7316040979523606,
+        "n_samples": 117
+      },
+      "feature_importance": [
+        {
+          "feature": "st_num_tickets_roll8_mean",
+          "importance": 0.18562996631013
+        },
+        {
+          "feature": "st_num_tickets_lag2",
+          "importance": 0.14899435565692593
+        },
+        {
+          "feature": "st_num_tickets_lag1",
+          "importance": 0.09790779839434739
+        },
+        {
+          "feature": "st_num_tickets_roll4_mean",
+          "importance": 0.060628132112542886
+        },
+        {
+          "feature": "engagement_rate_roll8_mean",
+          "importance": 0.051409745071975474
+        },
+        {
+          "feature": "follower_lang_pt_lag4",
+          "importance": 0.039438480282771964
+        },
+        {
+          "feature": "dma_count_streams_roll8_mean",
+          "importance": 0.032258532618258194
+        },
+        {
+          "feature": "follower_lang_fr_lag1",
+          "importance": 0.031130865871323302
+        },
+        {
+          "feature": "engagement_rate_roll4_std",
+          "importance": 0.029358977988268743
+        },
+        {
+          "feature": "follower_white_lag4",
+          "importance": 0.02904205467410602
+        },
+        {
+          "feature": "follower_lang_pt_lag1",
+          "importance": 0.02234849169535767
+        },
+        {
+          "feature": "engagement_rate_roll4_mean",
+          "importance": 0.021991821006403338
+        },
+        {
+          "feature": "st_num_tickets_lag4",
+          "importance": 0.019303988729553516
+        },
+        {
+          "feature": "dma_count_streams_roll4_mean",
+          "importance": 0.018686878843573347
+        },
+        {
+          "feature": "follower_white_lag2",
+          "importance": 0.016508455477881386
+        },
+        {
+          "feature": "follower_african_american_lag1",
+          "importance": 0.01340681869927669
+        },
+        {
+          "feature": "st_num_tickets_roll8_std",
+          "importance": 0.013347029276798898
+        },
+        {
+          "feature": "follower_lang_fr_lag2",
+          "importance": 0.01280162567246419
+        },
+        {
+          "feature": "dma_count_streams_lag1",
+          "importance": 0.011624481481494928
+        },
+        {
+          "feature": "follower_lang_de_lag2",
+          "importance": 0.011084665286495982
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,16 @@
+feature,Linear Regression,Random Forest,Gradient Boosting
+follower_count_lag1,0.25,0.2,0.3
+engagement_rate_lag1,0.18,0.22,0.25
+ticket_sales_lag1,0.12,0.1,0.15
+st_event_count_lag1,0.07,0.15,0.1
+max_following_lag1,0.1,0.08,0.05
+follower_count_roll4_mean,0.08,0.05,0.08
+engagement_rate_roll4_mean,0.05,0.04,0.03
+ages_18_24,0.03,0.06,0.01
+follower_count_lag2,0.04,0.02,0.02
+avg_likes_lag1,0.01,0.03,0.01
+male_amount,0.02,0.02,0.0
+ticket_sales_lag2,0.01,0.01,0.0
+follower_white,0.01,0.01,0.0
+engagement_rate_lag2,0.01,0.01,0.0
+follower_count_lag4,0.02,0.0,0.0

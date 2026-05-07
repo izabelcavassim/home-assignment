@@ -1,0 +1,16 @@
+feature,linear_regression,random_forest,gradient_boosting
+follower_white_lag4,52417.52643315858,0.0,0.01842377432904927
+follower_hispanic_lag4,50434.211265259684,0.0,0.0
+follower_african_american_lag4,31335.02507871011,0.0,0.0
+follower_asian_lag4,23889.120357797914,0.0,0.0
+follower_white_lag2,17449.402261102012,0.0,0.0
+follower_hispanic_lag2,16966.368882319315,0.0,0.0
+follower_african_american_lag2,9544.145628158905,0.013112314421157565,0.0
+follower_asian_lag2,8141.212937535824,0.0,0.0
+follower_white_lag1,4055.614130389996,0.0,0.00876924680777547
+follower_hispanic_lag1,3935.8893302346064,0.0,0.0
+follower_african_american_lag1,2207.7033785459607,0.020262967900638054,0.022882904464395927
+follower_asian_lag1,2050.5487385322344,0.0,0.0
+engagement_rate_roll8_std,5.634221617205185,0.0,0.0
+engagement_rate_roll12_std,3.3910342319504707,0.013128343515036903,0.0
+dma_count_streams_roll4_mean,2.968426045137221,0.0,0.0

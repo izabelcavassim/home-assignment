@@ -295,7 +295,10 @@ results/streaming_growth/
 ├── sampled_artists.json                   # Artist IDs used
 ├── feature_names.json                     # Feature list
 ├── plots/
+│   ├── analysis_report.html              
 │   ├── model_comparison_metrics.png       # Test + CV metrics comparison
+│   ├── combined_feature_importance.png    
+│   ├── feature_importance_comparison.csv  
 │   ├── cv_vs_test_performance.png         # CV vs test stability plot
 │   ├── feature_correlations_agnostic.png  # Model-agnostic correlations
 │   ├── feature_contribution_relationships.png
@@ -325,28 +328,35 @@ results/streaming_growth/
    - **Bottom row**: CV metrics with error bars (stability assessment)
    - Identifies best-performing and most stable model
 
-2. **CV vs Test Performance** (`cv_vs_test_performance.png`)
+**CV vs Test Performance** (`cv_vs_test_performance.png`)
    - Plots test R² vs CV R² (mean ± std)
    - Good models have test scores within CV error bars
    - Large gaps indicate overfitting or distribution shift
 
-3. **Feature Correlations** (`feature_correlations_agnostic.png`)
+4. **Feature Correlations** (`feature_correlations_agnostic.png`)
    - Linear correlation (Pearson r) with target
    - Model-agnostic - same for all models
    - Shows raw feature-target relationships
 
-4. **Feature Importance** (per model)
+5. **Feature Importance** (per model)
    - **Linear Regression**: Absolute coefficient values
    - **Random Forest**: Gini importance (split contribution)
    - **Gradient Boosting**: Split gain
    - Each model weights features differently!
 
-5. **Predicted vs Actual** (per model)
+6. **Predicted vs Actual** (per model)
    - Scatter plot showing prediction accuracy
    - Diagonal line = perfect predictions
    - R² score displayed
 
-6. **Residuals Analysis** (per model)
+7. **Time Series Predictions** (per model)
+   - **Individual artist plots** - 8 artists with most test data
+   - **Per-artist metrics** - R², MAE, and number of weeks displayed
+   - **Shaded error regions** - Visual indication of prediction accuracy
+   - **Week labels** - Actual dates shown when feasible
+   - **Aggregate view** - All predictions colored by artist + weekly error trends
+
+8. **Residuals Analysis** (per model)
    - Checks for systematic errors or bias
    - Should be randomly distributed around zero
 

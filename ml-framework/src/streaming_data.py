@@ -129,10 +129,16 @@ class StreamingDataLoader:
         # Convert to ISO week numbers
         df = convert_to_week_number(df, date_columns=['week_start_date', 'week'])
         
+        # Create cumulative streams per artist (sorted by week)
+        df = df.sort_values(['artist_id', 'week_date'])
+        df['cleaned_cumulative_spotify_streams'] = df.groupby('artist_id')['number_of_streams'].cumsum()
+        logger.info("  Created cleaned_cumulative_spotify_streams column")
+        
         # Log stats
         logger.info(f"  Unique artists: {df['artist_id'].nunique():,}")
         logger.info(f"  Date range: {df['week_date'].min()} to {df['week_date'].max()}")
         logger.info(f"  Week number range: {df['week'].min()} to {df['week'].max()}")
+        logger.info(f"  Cumulative streams range: {df['cleaned_cumulative_spotify_streams'].min():,.0f} to {df['cleaned_cumulative_spotify_streams'].max():,.0f}")
         
         return df
     
@@ -545,7 +551,7 @@ class StreamingDataLoader:
         
         # Apply imputation if requested
         if self.impute_missing:
-            df = self.smart_impute(df)
+            df = self.smart_impute(df)  
         
         logger.info(f"Final dataset shape: {df.shape}")
         logger.info(f"  Artists: {df['artist_id'].nunique()}")
