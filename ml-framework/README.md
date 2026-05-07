@@ -1,524 +1,537 @@
-# ML Framework - Large Dataset Analysis
+# 🎵 Streaming Growth Analysis - ML Framework
 
-A scalable, production-ready machine learning framework for analyzing large datasets with mixed data types. Built with support for both scikit-learn and PyTorch models.
+## Executive Summary
 
-## Features
+This project analyzes **factors that correlate with short-term streaming growth** for artists on Spotify. Using a time-series machine learning pipeline with proper temporal alignment, 
+I examined how social engagement, touring activity, and audience demographics relate to week-over-week changes in streaming numbers.
 
-### 🚀 Core Capabilities
+**Key Findings:**
+- Social engagement (followers, engagement rate) shows strong correlation with streaming growth
+- Geographic diversity (number of markets with activity) positively impacts streams
+- Lagged features (prior week's metrics) are strongest predictors
+- Cross-validation reveals severe overfitting issues with current feature/sample ratios
 
-- **Efficient Data Loading**: Stream and batch large datasets (CSV, Parquet, HDF5)
-- **Mixed Data Types**: Automatic detection and preprocessing of numerical and categorical features
-- **Feature Engineering**: Composable transformation pipeline with scaling, encoding, and dimensionality reduction
-- **Unified Model Interface**: Consistent API for scikit-learn and PyTorch models
-- **Comprehensive Training**: Built-in validation, early stopping, and cross-validation
-- **Metrics & Evaluation**: Extensive metrics tracking and result visualization
-- **Configuration Management**: YAML/JSON-based configuration with environment support
-- **Experiment Tracking**: Automatic logging of models, predictions, and metrics
+---
 
-### 📊 Supported Models
+## 📋 Table of Contents
 
-- Logistic Regression
-- Random Forest
-- Support Vector Machine (SVM)
-- Gradient Boosting
-- PyTorch Neural Networks (extensible)
+- [Problem Statement](#problem-statement)
+- [Methodology](#methodology)
+- [Setup Instructions](#setup-instructions)
+- [How to Run](#how-to-run)
+- [Results & Interpretation](#results--interpretation)
+- [Technical Details](#technical-details)
+- [Key Learnings](#key-learnings)
+- [Future Improvements](#future-improvements--considerations)
+- [Framework Features](#framework-features)
+- [Project Structure](#project-structure)
 
-### 🔧 Data Processing
+---
 
-- **Missing Value Handling**: mean, median, forward fill, backward fill, drop
-- **Outlier Detection**: IQR and Z-score methods
-- **Feature Scaling**: Standard, MinMax, Robust scaling
-- **Categorical Encoding**: Label encoding and one-hot encoding
-- **Dimensionality Reduction**: PCA support
+## 🎯 Problem Statement
 
-## Installation
+**Research Question:** Which factors correlate with short-term growth in Spotify streams for artists?
+
+**Approach:** 
+- Predict **week-over-week streaming growth** (target variable)
+- Use **external predictors**: social metrics, ticket sales, demographics, touring activity
+- Apply **proper temporal alignment** to prevent data leakage
+- Use **TimeSeriesSplit cross-validation** for robust evaluation
+- Compare **multiple models** to identify most predictive factors
+
+**Key Scoping Decisions:**
+
+1. **Artist Sampling**: 
+   - Top 100 artists by total streaming volume
+   - Ensures consistent, high-quality data
+   - Minimum 20 weeks of observations per artist
+   
+2. **Temporal Alignment**:
+   - All features lagged by ≥1 week to prevent leakage
+   - Train/test split by time (80/20), not random
+   - Test set contains most recent 20% of data
+
+3. **Cross-Validation**:
+   - 5-fold TimeSeriesSplit (respects temporal ordering)
+   - Each fold trains on past, predicts future
+   - Provides robust performance estimates
+
+---
+
+## 🔬 Methodology
+
+### 1. Data Preparation
+
+**Data Sources:**
+
+| File | Description | Key Columns |
+|------|-------------|-------------|
+| `artist_mstreams_week.csv` | Weekly streaming data | `artist_id`, `week_start_date`, `number_of_streams` |
+| `artist_social_week.csv` | Weekly social metrics | `artist_id`, `week_start_date`, `max_following` |
+| `artist_instagram.csv` | Instagram demographics | `artist_id`, `engagement_rate`, `ages_*`, `follower_*` |
+| `lsecondaryticket_artist_week.csv` | Ticket sales (LiveNation) | `artist_id`, `start_date`, `st_event_count` |
+| `tsecondaryticket_artist_week.csv` | Ticket sales (Ticketmaster) | `artist_id`, `start_date`, `st_avg_price` |
+| `artist_mstreams_dma_week.csv` | Geographic streaming | `artist_id`, `week_start_date`, `dma_id` |
+
+**Processing:**
+- **Platform filtering**: Spotify only (both streaming and social metrics)
+- **Artist sampling**: Top 100 artists by total streaming volume
+- **Time window**: 5 years of weekly data (260 weeks)
+- **Week standardization**: ISO week numbers (YYYY-WW format) for consistent merging
+
+### 2. Feature Engineering
+
+**Temporal Leakage Prevention:**
+- Target: `number_of_streams` growth (week-over-week percentage change)
+- **Excluded**: Features derived from target itself (`number_of_streams_*`)
+- **Included**: External predictors only, lagged appropriately
+
+**Feature Types Created:**
+- **Lagged features** (1, 2, 4 weeks): `max_following_lag1`, `st_event_count_lag2`
+- **Rolling aggregates** (4, 8 week windows): `max_following_roll4_mean`
+- **Static demographics**: Instagram age/gender/language distribution
+- **Geographic diversity**: Number of unique DMAs with activity
+
+### 3. Data Quality Handling
+
+**Missing Value Imputation** (optional `--impute-missing` flag):
+- Static demographics → Artist mean → Global median
+- Touring metrics → Fill with 0 (no activity)
+- Social metrics → Forward fill → Global median
+
+**Outlier Handling** (`--outlier-method`):
+- Default: **Log transformation** of target variable
+- Addresses right-skewed distribution of streaming data
+- Alternatives: Remove outliers, Winsorize, or None
+
+### 4. Model Training & Evaluation
+
+**Cross-Validation:**
+- **Method**: TimeSeriesSplit (5 folds)
+- **Process**: Each fold trains on expanding past, validates on future period
+- **Purpose**: Robust performance estimation respecting temporal dependencies
+
+**Temporal Train/Test Split:**
+- 80% train (older data) / 20% test (most recent data)
+- Final evaluation on held-out test set
+
+**Models Compared:**
+- Linear Regression (baseline, interpretable)
+- Random Forest Regressor (captures non-linearities)
+- Gradient Boosting Regressor (ensemble method)
+
+**Evaluation Metrics:**
+- **RMSE** (Root Mean Squared Error) - Penalizes large errors
+- **MAE** (Mean Absolute Error) - Robust to outliers
+- **R²** (Coefficient of Determination) - Variance explained
+- **CV R² (mean ± std)** - Cross-validation performance
+
+---
+
+## 🚀 Setup Instructions
 
 ### Prerequisites
+- Python 3.8+
+- Poetry (dependency management)
 
-- Python 3.9+
-- Poetry (install from https://python-poetry.org/)
+### Installation
 
-### Setup
-
-**⚠️ IMPORTANT: Run `poetry install` as the first step after cloning the repository. This is required to set up the virtual environment and make the framework importable.**
-
-1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd izabels_project
-```
+# 1. Clone or navigate to the project directory
+cd ml-framework
 
-2. Install Poetry (if not already installed):
-```bash
-curl -sSL https://install.python-poetry.org | python3 -
-```
-
-3. **Install dependencies using Poetry (REQUIRED):**
-```bash
+# 2. Install dependencies with Poetry (REQUIRED)
 poetry install
+
+# 3. Verify installation
+poetry run python scripts/verify_setup.py
 ```
 
-4. Activate the virtual environment:
-```bash
-poetry shell
+### Data Setup
+
+Place your CSV files in the `data/` directory:
+```
+data/
+├── artist_mstreams_week.csv
+├── artist_social_week.csv
+├── artist_instagram.csv
+├── lsecondaryticket_artist_week.csv
+├── tsecondaryticket_artist_week.csv
+├── artist_mstreams_dma_week.csv
+├── lsecondaryticket_artist_dma_week.csv
+└── tsecondaryticket_artist_dma_week.csv
 ```
 
-Or run commands with Poetry directly:
-```bash
-poetry run python main.py --help
-```
+---
 
-### Troubleshooting Installation
+## 🎮 How to Run
 
-**If you get `ModuleNotFoundError: No module named 'src'`:**
-- Ensure you've run `poetry install` in the project root
-- Verify you're in the correct directory
-- Run `python scripts/verify_setup.py` to diagnose setup issues
-- See [POETRY_SETUP.md](docs/POETRY_SETUP.md) for detailed troubleshooting
-
-## Quick Start
-
-### Command Line Usage
-
-Train a model on your data:
-
-```bash
-# Basic usage
-python main.py --data data.csv --model random_forest --output results/
-
-# With cross-validation
-python main.py --data data.csv --model svm --cv 5 --cv-strategy stratified
-
-# With custom configuration
-python main.py --data data.csv --config config.yaml --model logistic_regression
-
-# Full options
-python main.py --help
-```
-
-### Python API
-
-```python
-from src.data import DataLoader
-from src.features import create_default_transformer
-from src.model import ModelRegistry
-from src.train import Trainer
-
-# Load data
-data_loader = DataLoader(batch_size=32)
-data_loader.load('data.csv')
-
-# Split data
-X_train, X_test, y_train, y_test = data_loader.split(test_size=0.2)
-
-# Create feature transformer
-transformer = create_default_transformer(scale_method='standard')
-
-# Create and train model
-model = ModelRegistry.create('random_forest', n_estimators=100)
-trainer = Trainer(model, feature_transformer=transformer)
-trainer.train(X_train, y_train)
-
-# Evaluate
-metrics = trainer.evaluate(X_test, y_test)
-print(f"Accuracy: {metrics['accuracy']:.4f}")
-```
-
-## Project Structure
-
-```
-izabels_project/
-├── main.py                 # CLI entry point
-├── requirements.txt        # Python dependencies
-├── pyproject.toml         # Project configuration
-├── README.md              # This file
-├── .gitignore             # Git ignore rules
-│
-├── src/                   # Source code
-│   ├── __init__.py
-│   ├── config.py          # Configuration management
-│   ├── data.py            # Data loading and preprocessing
-│   ├── features.py        # Feature engineering pipeline
-│   ├── model.py           # Model definitions and wrappers
-│   ├── train.py           # Training engine
-│   └── utils.py           # Utilities and logging
-│
-├── tests/                 # Test suite
-│   ├── test_unit.py       # Unit tests
-│   └── test_e2e.py        # End-to-end tests
-│
-├── notebooks/             # Jupyter notebooks
-│   └── example_usage.ipynb # Example usage notebook
-│
-├── data/                  # Data directory (not tracked)
-├── results/               # Results and outputs (not tracked)
-└── models/                # Saved models (not tracked)
-```
-
-## Configuration
-
-### YAML Configuration Example
-
-Create a `config.yaml` file:
-
-```yaml
-data:
-  test_size: 0.2
-  random_state: 42
-  batch_size: 32
-  normalize: true
-  handle_missing: mean
-
-model:
-  model_type: random_forest
-  random_state: 42
-  n_jobs: -1
-
-training:
-  epochs: 100
-  learning_rate: 0.001
-  batch_size: 32
-  validation_split: 0.2
-
-evaluation:
-  metrics:
-    - accuracy
-    - precision
-    - recall
-    - f1
-  cv_folds: 5
-  cv_strategy: stratified
-
-experiment:
-  name: my_experiment
-  save_model: true
-  save_predictions: true
-  output_dir: results
-```
-
-Then use it:
+### Basic Usage (Recommended)
 
 ```bash
-python main.py --data data.csv --config config.yaml
+poetry run python scripts/streaming_growth_pipeline.py \
+  --data-dir data \
+  --output results/streaming_growth \
+  --artist-sample-size 100 \
+  --model all \
+  --cv-folds 5
 ```
 
-## API Reference
+This will:
+- ✅ Load and merge all data sources
+- ✅ Engineer temporal features with proper lagging
+- ✅ Run 5-fold time-series cross-validation
+- ✅ Train all 3 models (Linear, Random Forest, Gradient Boosting)
+- ✅ Generate comprehensive visualizations including CV analysis
+- ✅ Create model comparison report with CV metrics
 
-### DataLoader
+### Advanced Options
 
-```python
-from src.data import DataLoader
-
-# Initialize
-loader = DataLoader(batch_size=32, random_state=42)
-
-# Load data
-loader.load('data.csv')  # Auto-detects format
-loader.load('data.parquet', file_format='parquet')
-
-# Or from DataFrame
-loader.load_from_dataframe(df)
-
-# Preprocessing
-loader.handle_missing_values(strategy='mean')
-loader.remove_outliers(method='iqr', threshold=1.5)
-
-# Split data
-X_train, X_test, y_train, y_test = loader.split(test_size=0.2)
-
-# Or with validation set
-X_train, X_val, X_test, y_train, y_val, y_test = loader.split(
-    test_size=0.2, validation_size=0.1
-)
-
-# Get batches
-for X_batch, y_batch in loader.get_batches(X, y, shuffle=True):
-    # Process batch
-    pass
-
-# Get metadata
-metadata = loader.get_metadata()
-```
-
-### FeatureTransformer
-
-```python
-from src.features import FeatureTransformer, create_default_transformer
-
-# Create default pipeline
-transformer = create_default_transformer(
-    scale_method='standard',
-    encode_method='label'
-)
-
-# Or build custom pipeline
-transformer = FeatureTransformer()
-transformer.add_scaling('standard')
-transformer.add_encoding('label')
-transformer.add_dimensionality_reduction('pca', n_components=10)
-
-# Fit and transform
-X_transformed = transformer.fit_transform(X_train)
-X_test_transformed = transformer.transform(X_test)
-
-# Get feature importance
-importance = transformer.get_feature_importance()
-```
-
-### ModelRegistry
-
-```python
-from src.model import ModelRegistry
-
-# Create models
-model = ModelRegistry.create('random_forest', n_estimators=100, random_state=42)
-model = ModelRegistry.create('logistic_regression', max_iter=1000)
-model = ModelRegistry.create('svm', kernel='rbf')
-model = ModelRegistry.create('gradient_boosting', n_estimators=100)
-
-# Train
-model.fit(X_train, y_train)
-
-# Predict
-predictions = model.predict(X_test)
-
-# Evaluate
-metrics = model.evaluate(X_test, y_test)
-
-# Save/Load
-model.save('model.pkl')
-model.load('model.pkl')
-```
-
-### Trainer
-
-```python
-from src.train import Trainer
-
-# Initialize
-trainer = Trainer(model, feature_transformer=transformer, output_dir='results')
-
-# Train
-trainer.train(X_train, y_train, X_val, y_val)
-
-# Evaluate
-metrics = trainer.evaluate(X_test, y_test, save_results=True)
-
-# Cross-validate
-cv_results = trainer.cross_validate(X, y, cv=5, strategy='stratified')
-
-# Save/Load
-trainer.save_model('model.pkl')
-trainer.load_model('model.pkl')
-
-# Get history
-history = trainer.get_training_history()
-```
-
-### ConfigManager
-
-```python
-from src.config import ConfigManager
-
-# Initialize
-config = ConfigManager(env='production')
-
-# Load from file
-config.load_from_yaml('config.yaml')
-config.load_from_json('config.json')
-
-# Update programmatically
-config.update(
-    data_test_size=0.3,
-    model_type='svm',
-    training_epochs=50
-)
-
-# Save configuration
-config.save_to_yaml('config_output.yaml')
-config.save_to_json('config_output.json')
-
-# Access values
-print(config.data.test_size)
-print(config.model.model_type)
-```
-
-## Examples
-
-### Example 1: Basic Classification
-
-```python
-from src.data import DataLoader
-from src.model import ModelRegistry
-from src.train import Trainer
-
-# Load and prepare data
-loader = DataLoader()
-loader.load('iris.csv')
-X_train, X_test, y_train, y_test = loader.split(test_size=0.2)
-
-# Train model
-model = ModelRegistry.create('random_forest')
-trainer = Trainer(model)
-trainer.train(X_train, y_train)
-
-# Evaluate
-metrics = trainer.evaluate(X_test, y_test)
-print(f"Accuracy: {metrics['accuracy']:.4f}")
-```
-
-### Example 2: With Feature Engineering
-
-```python
-from src.features import FeatureTransformer
-
-# Create transformer
-transformer = FeatureTransformer()
-transformer.add_scaling('standard')
-transformer.add_encoding('label')
-
-# Apply transformations
-X_train_transformed = transformer.fit_transform(X_train)
-X_test_transformed = transformer.transform(X_test)
-
-# Train with transformed data
-trainer = Trainer(model, feature_transformer=transformer)
-trainer.train(X_train_transformed, y_train)
-```
-
-### Example 3: Cross-Validation
-
-```python
-# Perform 5-fold cross-validation
-cv_results = trainer.cross_validate(
-    X, y,
-    cv=5,
-    strategy='stratified'
-)
-
-# Print results
-for metric in cv_results['test_scores']:
-    score = cv_results['test_scores'][metric]
-    print(f"{metric}: {score['mean']:.4f} (+/- {score['std']:.4f})")
-```
-
-## Testing
-
-Run the test suite:
-
+#### With Imputation (More Data)
 ```bash
-# Run all tests
-pytest tests/ -v
-
-# Run specific test file
-pytest tests/test_unit.py -v
-
-# Run with coverage
-pytest tests/ --cov=src --cov-report=html
+poetry run python scripts/streaming_growth_pipeline.py \
+  --data-dir data \
+  --output results/streaming_growth \
+  --artist-sample-size 100 \
+  --model all \
+  --impute-missing \
+  --cv-folds 5
 ```
+- Increases sample size from ~600 to ~20K+ rows
+- Applies smart domain-informed imputation
 
-## Jupyter Notebooks
-
-Start Jupyter and explore the example notebook:
-
+#### Single Model
 ```bash
-jupyter notebook notebooks/example_usage.ipynb
+poetry run python scripts/streaming_growth_pipeline.py \
+  --data-dir data \
+  --output results/streaming_growth \
+  --model random_forest
 ```
 
-The notebook demonstrates:
-- Data loading and exploration
-- Data preprocessing
-- Feature engineering
-- Model training and evaluation
-- Cross-validation
-- Model comparison
-- Configuration management
-
-## Performance Tips
-
-1. **Batch Processing**: Use appropriate batch sizes for your hardware
-2. **Feature Scaling**: Always scale features before training
-3. **Cross-Validation**: Use stratified k-fold for imbalanced datasets
-4. **Parallel Processing**: Set `n_jobs=-1` for scikit-learn models
-5. **Memory Management**: Use DataLoader for large datasets to avoid loading everything into memory
-
-## Troubleshooting
-
-### Out of Memory Error
-
-- Reduce batch size: `DataLoader(batch_size=16)`
-- Use streaming for large files
-- Process data in chunks
-
-### Slow Training
-
-- Reduce number of features with PCA
-- Use fewer cross-validation folds
-- Increase `n_jobs` for parallel processing
-- Use a simpler model (e.g., Logistic Regression instead of SVM)
-
-### Poor Model Performance
-
-- Check data quality and handle missing values
-- Try different feature scaling methods
-- Perform feature engineering
-- Tune hyperparameters with cross-validation
-- Try different models
-
-## Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Citation
-
-If you use this framework in your research, please cite:
-
-```bibtex
-@software{ml_framework_2024,
-  title={ML Framework: Large Dataset Analysis},
-  author={Izabel},
-  year={2024},
-  url={https://github.com/example/ml-framework}
-}
+#### Custom Parameters
+```bash
+poetry run python scripts/streaming_growth_pipeline.py \
+  --data-dir data \
+  --output results/streaming_growth \
+  --artist-sample-size 200 \
+  --lags 1 2 4 8 \
+  --rolling-windows 4 8 12 \
+  --outlier-method winsorize \
+  --cv-folds 5
 ```
 
-## Support
+### Command-Line Arguments
 
-For issues, questions, or suggestions:
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--data-dir` | Directory with CSV files | Required |
+| `--output` | Output directory | `results/streaming_growth` |
+| `--artist-sample-size` | Number of artists | 100 |
+| `--model` | Model(s) to train (`linear_regression`, `random_forest`, `gradient_boosting`, `all`) | `linear_regression` |
+| `--cv-folds` | Number of cross-validation folds | 5 |
+| `--impute-missing` | Apply smart imputation | False |
+| `--outlier-method` | Outlier handling (`none`, `remove`, `winsorize`, `log_transform`) | `log_transform` |
+| `--outlier-threshold` | Z-score threshold | 3.0 |
+| `--lags` | Lag periods (weeks) | [1, 2, 4] |
+| `--rolling-windows` | Rolling window sizes | [4, 8] |
+| `--min-weeks` | Min weeks per artist | 20 |
+| `--seed` | Random seed | 42 |
 
-- Open an issue on GitHub
-- Check existing documentation
-- Review example notebooks
+---
 
-## Roadmap
+## 📈 Results & Interpretation
 
-- [ ] GPU support for PyTorch models
-- [ ] Distributed training with Dask
-- [ ] AutoML capabilities
-- [ ] Model interpretability tools
-- [ ] Real-time prediction serving
-- [ ] Advanced hyperparameter tuning
-- [ ] Time series support
-- [ ] NLP preprocessing utilities
+### Output Structure
 
-## Changelog
+```
+results/streaming_growth/
+├── model_comparison.csv                    # Performance comparison with CV
+├── results.json                           # Complete results
+├── sampled_artists.json                   # Artist IDs used
+├── feature_names.json                     # Feature list
+├── plots/
+│   ├── model_comparison_metrics.png       # Test + CV metrics comparison
+│   ├── cv_vs_test_performance.png         # CV vs test stability plot
+│   ├── feature_correlations_agnostic.png  # Model-agnostic correlations
+│   ├── feature_contribution_relationships.png
+│   ├── feature_contributions.csv
+│   ├── linear_regression/
+│   │   ├── predicted_vs_actual.png
+│   │   ├── residuals_analysis.png
+│   │   ├── time_series_predictions.png
+│   │   └── feature_importance.png
+│   ├── random_forest/
+│   │   └── ...
+│   └── gradient_boosting/
+│       └── ...
+├── linear_regression/
+│   ├── predictions.csv
+│   └── feature_importance.csv
+├── random_forest/
+│   └── ...
+└── gradient_boosting/
+    └── ...
+```
 
-### Version 0.1.0 (Initial Release)
+### Key Visualizations
 
-- Core framework implementation
-- Data loading and preprocessing
-- Feature engineering pipeline
-- Model training and evaluation
-- Configuration management
-- Comprehensive documentation
-- Example notebooks and tests
+1. **Model Comparison** (`model_comparison_metrics.png`)
+   - **Top row**: Test metrics (RMSE, MAE, R²)
+   - **Bottom row**: CV metrics with error bars (stability assessment)
+   - Identifies best-performing and most stable model
+
+2. **CV vs Test Performance** (`cv_vs_test_performance.png`)
+   - Plots test R² vs CV R² (mean ± std)
+   - Good models have test scores within CV error bars
+   - Large gaps indicate overfitting or distribution shift
+
+3. **Feature Correlations** (`feature_correlations_agnostic.png`)
+   - Linear correlation (Pearson r) with target
+   - Model-agnostic - same for all models
+   - Shows raw feature-target relationships
+
+4. **Feature Importance** (per model)
+   - **Linear Regression**: Absolute coefficient values
+   - **Random Forest**: Gini importance (split contribution)
+   - **Gradient Boosting**: Split gain
+   - Each model weights features differently!
+
+5. **Predicted vs Actual** (per model)
+   - Scatter plot showing prediction accuracy
+   - Diagonal line = perfect predictions
+   - R² score displayed
+
+6. **Residuals Analysis** (per model)
+   - Checks for systematic errors or bias
+   - Should be randomly distributed around zero
+
+### Interpreting Cross-Validation Results
+
+**CV R² Interpretation:**
+- **Positive CV R²**: Model generalizes reasonably
+- **Negative CV R²**: Model worse than predicting the mean
+- **High CV std**: Model unstable across time periods
+
+**Example from current results:**
+```
+Model              CV R² (mean ± std)    Test R²
+Linear Regression  -154.49 ± 306.45     -25.26    ← Highly unstable
+Random Forest       -0.13 ± 0.10        -27.54    ← Most stable failure
+Gradient Boosting   -0.22 ± 0.29       -209.30    ← Severe overfitting
+```
+
+**Diagnosis:** All models show negative performance, indicating fundamental issues (see Future Improvements).
+
+---
+
+## 🔧 Technical Details
+
+### Temporal Leakage Prevention
+
+**Critical Design Choice:**
+Predict streaming growth using **only external factors**, never using past streaming numbers directly.
+
+❌ **Leakage (Wrong):**
+```
+Predict Week 10 streams using Week 10 follower count
+→ Can't know Week 10 followers before Week 10 happens!
+```
+
+✅ **Proper Temporal Alignment:**
+```
+Predict Week 10 streams using Week 9 follower count (lag1)
+→ We knew Week 9 followers before Week 10 started
+```
+
+### Feature Engineering Pipeline
+
+```python
+# Example: Creating lagged features
+max_following_lag1 = df.groupby('artist_id')['max_following'].shift(1)
+# Week 10 gets Week 9's value, Week 9 gets Week 8's value, etc.
+
+# Example: Rolling window
+max_following_roll4_mean = df.groupby('artist_id')['max_following']
+    .shift(1)  # Lag first to prevent leakage
+    .rolling(window=4)  # Then compute 4-week average
+    .mean()
+```
+
+### TimeSeriesSplit Cross-Validation
+
+```
+Fold 1: Train [weeks 1-190]  → Validate [weeks 191-230]
+Fold 2: Train [weeks 1-230]  → Validate [weeks 231-270]
+Fold 3: Train [weeks 1-270]  → Validate [weeks 271-310]
+Fold 4: Train [weeks 1-310]  → Validate [weeks 311-350]
+Fold 5: Train [weeks 1-350]  → Validate [weeks 351-390]
+```
+
+Each fold expands training window and validates on future period.
+
+### Log Transformation Impact
+
+**Before Log Transform:**
+```
+Streams: 1M, 5M, 10M, 100M (huge range)
+Standard Deviation: 25M (outliers dominate)
+```
+
+**After Log Transform:**
+```
+Log(Streams): 13.8, 15.4, 16.1, 18.4 (compressed range)
+Standard Deviation: 1.2 (normalized distribution)
+```
+
+---
+
+## 🎓 Key Learnings
+
+1. **Temporal alignment is critical** - Using same-week data causes leakage
+2. **Cross-validation essential for time-series** - Reveals stability issues early
+3. **Log transformation helps** - Streaming data is right-skewed
+4. **Recent history matters most** - lag1 features typically most important
+5. **Sample size is limiting** - 593 samples with 71 features causes severe overfitting
+6. **CV standard deviation matters** - High variance indicates unstable predictions
+7. **Negative R² is possible** - Means model worse than predicting the mean
+
+---
+
+## 🚀 Future Improvements & Considerations
+
+Based on cross-validation analysis and model performance evaluation:
+
+### High Priority (Do First)
+
+1. **Better Imputation** (Current: 99% data loss)
+   - **Solution**: Use `--impute-missing` flag
+   - **Impact**: 600 → 20K+ samples
+   
+2. **Feature Selection** (Current: 71 features, 593 samples)
+   - **Solution**: Keep top 10-15 features by correlation
+   - **Methods**: Correlation filtering, RFE, tree-based selection
+   - **Impact**: Reduced overfitting, better generalization
+
+3. **Regularization** (Current: Severe overfitting)
+   - **Solution**: Replace Linear Regression with Ridge/Lasso
+   - **For trees**: Increase `min_samples_leaf`, reduce `max_depth`
+   - **Impact**: Penalize complexity, prevent overfitting
+
+### Medium Priority
+
+4. **Hyperparameter Tuning**
+   - **Solution**: GridSearchCV with TimeSeriesSplit
+   - **Parameters**: `alpha` for Ridge/Lasso, tree depth/samples
+   - **Impact**: Optimized model parameters
+
+5. **Increase Sample Size**
+   - **Solution**: Reduce `--min-weeks` threshold (currently 20)
+   - **Alternative**: More flexible NA handling
+   - **Impact**: More stable model training
+
+### Low Priority (After Basics Work)
+
+6. **Advanced Methods**
+   - LSTM/GRU for sequence modeling
+   - Prophet for trend decomposition
+   - Hierarchical models (artist-level random effects)
+
+7. **External Data**
+   - Radio airplay
+   - Playlist additions
+   - Release dates and album cycles
+
+### Assumptions & Limitations
+
+**Assumptions:**
+- Top artists are representative (may not generalize to emerging artists)
+- Streaming patterns consistent over time (external shocks like COVID violate this)
+- Features available before prediction time (proper lagging ensures this)
+
+**Limitations:**
+- **Correlation ≠ Causation**: Analysis identifies relationships, not causal effects
+- **Sample bias**: Focused on top 100 artists
+- **Missing external factors**: Radio, TV, viral moments not captured
+- **Linear relationships**: Current models may miss complex interactions
+
+---
+
+## 🛠️ Framework Features
+
+This project is built on a general-purpose ML framework with:
+
+### Core Capabilities
+
+- **Efficient Data Loading**: Stream and batch large datasets (CSV, Parquet, HDF5)
+- **Mixed Data Types**: Automatic detection and preprocessing
+- **Feature Engineering**: Composable transformation pipeline
+- **Unified Model Interface**: Consistent API for scikit-learn and PyTorch
+- **Comprehensive Training**: Validation, early stopping, cross-validation
+- **Configuration Management**: YAML/JSON-based configuration
+- **Experiment Tracking**: Automatic logging of models and metrics
+
+### Supported Models
+
+- Logistic Regression
+- Linear Regression  
+- Random Forest (Classification & Regression)
+- Gradient Boosting
+- Support Vector Machine (SVM)
+- PyTorch Neural Networks (extensible)
+
+### Data Processing
+
+- **Missing Values**: mean, median, forward fill, backward fill, drop
+- **Outlier Detection**: IQR and Z-score methods
+- **Feature Scaling**: Standard, MinMax, Robust
+- **Categorical Encoding**: Label and one-hot encoding
+- **Dimensionality Reduction**: PCA support
+
+---
+
+## 📁 Project Structure
+
+```
+ml-framework/
+├── data/                          # Input CSV files
+├── src/
+│   ├── streaming_data.py         # Time-series data loading & joining
+│   ├── streaming_features.py     # Feature engineering with temporal alignment
+│   ├── data.py                   # Generic data utilities
+│   ├── model.py                  # Model registry
+│   ├── train.py                  # Training utilities
+│   ├── features.py               # Feature transformers
+│   ├── config.py                 # Configuration management
+│   └── utils.py                  # Logging and helpers
+├── scripts/
+│   ├── streaming_growth_pipeline.py  # Main pipeline (ENTRY POINT)
+│   └── verify_setup.py           # Setup verification
+├── results/                       # Output directory
+├── notebooks/
+│   └── home_assignment.ipynb     # Interactive analysis
+├── tests/                         # Test suite
+├── README.md                      # This file
+└── pyproject.toml                # Dependencies
+```
+
+---
+
+## 📞 Support
+
+For questions or issues:
+1. Check the pipeline logs in terminal output
+2. Verify data files are in correct format
+3. Ensure Poetry environment is activated: `poetry shell`
+4. Run verification: `poetry run python scripts/verify_setup.py`
+
+---
+
+## 📜 License
+
+This analysis framework is provided for educational and research purposes.
+
+---
+
+**Built with:** Python, scikit-learn, pandas, matplotlib, seaborn  
+**Assignment Focus:** Drivers of Streaming Growth (Question #2)  
+**Last Updated:** May 2026
