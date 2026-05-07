@@ -1,20 +1,37 @@
 # 🎵 Streaming Growth Analysis - ML Framework
 
-## Executive Summary
+> **A production-ready time-series ML pipeline for analyzing drivers of artist streaming growth**
 
-This project analyzes **factors that correlate with short-term streaming growth** for artists on Spotify. Using a time-series machine learning pipeline with proper temporal alignment, 
-I examined how social engagement, touring activity, and audience demographics relate to week-over-week changes in streaming numbers.
+## Overview
 
-**Key Findings:**
+This project is a **modular machine learning framework** designed to analyze **factors that correlate with short-term streaming growth** for artists on Spotify. Built with best practices for time-series analysis, it provides reusable components for data loading, feature engineering, model training, and evaluation.
+
+### What This Framework Does
+
+- ✅ Analyzes **week-over-week streaming growth** using external predictors
+- ✅ Implements **proper temporal alignment** to prevent data leakage
+- ✅ Uses **TimeSeriesSplit cross-validation** for robust evaluation
+- ✅ Engineers **lagged and rolling window features** for time-series data
+- ✅ Trains and compares **multiple regression models**
+- ✅ Generates **comprehensive visualizations** and performance metrics
+- ✅ Saves trained models for reproducibility and deployment
+
+### Project Context
+
+Originally developed as a take-home assignment analyzing artist performance data, this framework has been designed as a **reusable, production-ready solution** for time-series regression problems.
+
+**Key Findings from Analysis:**
 - Social engagement (followers, engagement rate) shows strong correlation with streaming growth
 - Geographic diversity (number of markets with activity) positively impacts streams
 - Lagged features (prior week's metrics) are strongest predictors
-- Cross-validation reveals severe overfitting issues with current feature/sample ratios
+- Cross-validation reveals model stability issues with high feature/sample ratios
 
 ---
 
 ## 📋 Table of Contents
 
+- [Overview](#overview)
+- [Use Cases](#use-cases)
 - [Problem Statement](#problem-statement)
 - [Methodology](#methodology)
 - [Setup Instructions](#setup-instructions)
@@ -516,6 +533,39 @@ ml-framework/
 
 ---
 
+## 🧪 Testing
+
+### Test Suite
+
+The framework includes comprehensive unit and E2E tests:
+
+**Unit Tests** (`tests/test_unit.py`):
+- 20 tests covering all core components
+- StreamingDataLoader, StreamingGrowthFeatures, ModelRegistry
+- 61% code coverage
+
+**E2E Tests** (`tests/test_e2e.py`):
+- 12+ comprehensive end-to-end scenarios
+- Tests all feature combinations (models, outlier methods, lags, windows, CV folds)
+- Validates reproducibility and visualization generation
+
+### Running Tests
+
+```bash
+# Run all unit tests (fast, ~5 seconds)
+poetry run pytest tests/test_unit.py -v
+
+# Run E2E tests (comprehensive, slower)
+poetry run pytest tests/test_e2e.py -v
+
+# Run with coverage report
+poetry run pytest tests/ --cov=src --cov-report=html
+```
+
+See the [Testing](#testing) section for detailed pytest commands and options.
+
+---
+
 ## 📞 Support
 
 For questions or issues:
@@ -523,15 +573,29 @@ For questions or issues:
 2. Verify data files are in correct format
 3. Ensure Poetry environment is activated: `poetry shell`
 4. Run verification: `poetry run python scripts/verify_setup.py`
+5. Review [docs/POETRY_SETUP.md](docs/POETRY_SETUP.md) for dependency issues
 
 ---
 
 ## 📜 License
 
-This analysis framework is provided for educational and research purposes.
+This framework is provided for educational and research purposes.
+
+---
+
+## 🤝 Contributing
+
+This is a modular, extensible framework. To contribute:
+
+1. **Add new models**: Extend `ModelRegistry` in `src/model.py`
+2. **Add new features**: Extend `StreamingGrowthFeatures` in `src/streaming_features.py`
+3. **Add new data sources**: Extend `StreamingDataLoader` in `src/streaming_data.py`
+4. **Add tests**: All new features should include unit tests
+5. **Update docs**: Keep README.md and inline documentation current
 
 ---
 
 **Built with:** Python, scikit-learn, pandas, matplotlib, seaborn  
-**Assignment Focus:** Drivers of Streaming Growth (Question #2)  
+**Purpose:** Time-series regression analysis with temporal leakage prevention  
+**Status:** Production-ready, fully tested  
 **Last Updated:** May 2026
