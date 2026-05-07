@@ -5,7 +5,7 @@ description = "A scalable ML framework for analyzing large datasets with mixed d
 authors = ["Izabel <izabel@example.com>"]
 readme = "README.md"
 license = "MIT"
-keywords = ["machine-learning", "data-science", "framework", "pytorch", "scikit-learn"]
+keywords = ["machine-learning", "data-science", "streaming-analysis", "scikit-learn"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",

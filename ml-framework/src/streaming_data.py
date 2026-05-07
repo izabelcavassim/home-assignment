@@ -436,25 +436,9 @@ class StreamingDataLoader:
         social_df = self.load_social_metrics()
         ticket_df = self.load_ticket_sales()
         dma_df = self.load_dma_data()  # NEW: Load DMA diversity data
-
-        print('this is streams df')
-        print(streams_df.columns)
-        print(streams_df)
-        
-        print('this is social df')
-        print(social_df.columns)
-        print(social_df)
-
-        print('this is ticket df')
-        print(ticket_df.columns)
-        print(ticket_df)
-
-        print("Sampling artists based on streaming data")
         
         # Sample artists based on streaming data
         sampled_artists = self.sample_artists(streams_df)
-
-        print(f'this is sampled artists: {sampled_artists}')
 
         
         # Filter to sampled artists
@@ -505,8 +489,6 @@ class StreamingDataLoader:
                 how='left',
                 suffixes=('', '_ticket')
             )
-
-            df.to_csv('df_after_joning_tickets.csv', index=False)
             
             # Check how many rows have ticket data
             ticket_cols = [col for col in df.columns if '_ticket' in col or col.startswith('st_')]
@@ -560,10 +542,6 @@ class StreamingDataLoader:
         
         # Sort by artist and week for time-series operations
         df = df.sort_values(['artist_id', 'week']).reset_index(drop=True)
-        df.to_csv('df_after_sorting.csv', index=False)
-        print('this is df after sorting')
-        print(df.columns)
-        print(df)
         
         # Apply imputation if requested
         if self.impute_missing:

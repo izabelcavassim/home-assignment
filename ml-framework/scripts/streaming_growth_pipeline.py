@@ -41,7 +41,6 @@ from src.utils import setup_logging
 from src.streaming_data import StreamingDataLoader
 from src.streaming_features import StreamingGrowthFeatures
 from src.model import ModelRegistry
-from src.train import Trainer
 
 
 def setup_parser() -> argparse.ArgumentParser:
