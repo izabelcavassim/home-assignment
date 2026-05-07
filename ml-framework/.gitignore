@@ -131,7 +131,7 @@ dmypy.json
 
 # Data files
 #data/
-*.csv
+#*.csv
 *.parquet
 *.h5
 *.hdf5
@@ -146,7 +146,7 @@ models/
 # Results and outputs
 #results/
 outputs/
-*.json
+#*.json
 experiments/
 
 # OS
