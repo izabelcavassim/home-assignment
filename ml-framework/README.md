@@ -1,4 +1,4 @@
-# 🎵 Streaming Growth Analysis - ML Framework
+# Streaming Growth Analysis - ML Framework
 
 > **A production-ready time-series ML pipeline for analyzing drivers of artist streaming growth**
 
@@ -8,13 +8,13 @@ This project is a **modular machine learning framework** designed to analyze **f
 
 ### What This Framework Does
 
-- ✅ Analyzes **week-over-week streaming growth** using external predictors
-- ✅ Implements **proper temporal alignment** to prevent data leakage
-- ✅ Uses **TimeSeriesSplit cross-validation** for robust evaluation
-- ✅ Engineers **lagged and rolling window features** for time-series data
-- ✅ Trains and compares **multiple regression models**
-- ✅ Generates **comprehensive visualizations** and performance metrics
-- ✅ Saves trained models for reproducibility and deployment
+- Analyzes **week-over-week streaming growth** using external predictors
+- Implements **proper temporal alignment** to prevent data leakage
+- Uses **TimeSeriesSplit cross-validation** for robust evaluation
+- Engineers **lagged and rolling window features** for time-series data
+- Trains and compares **multiple regression models**
+- Generates **comprehensive visualizations** and performance metrics
+- Saves trained models for reproducibility and deployment
 
 ### Project Context
 
@@ -28,7 +28,7 @@ Originally developed as a take-home assignment analyzing artist performance data
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Use Cases](#use-cases)
@@ -42,10 +42,38 @@ Originally developed as a take-home assignment analyzing artist performance data
 - [Future Improvements](#future-improvements--considerations)
 - [Framework Features](#framework-features)
 - [Project Structure](#project-structure)
+- [Testing](#testing)
 
 ---
 
-## 🎯 Problem Statement
+## Use Cases
+
+This framework is designed for:
+
+### Primary: Artist Performance Analysis
+- Identify which external factors (social, touring, demographics) drive streaming growth
+- Predict week-over-week streaming changes for artists
+- Understand temporal relationships between marketing activities and outcomes
+
+### Reusable: Time-Series Regression Problems
+The modular design makes it suitable for any time-series regression task with:
+- **Multiple data sources** to join on temporal keys
+- **External predictors** (not autoregressive forecasting)
+- **Proper temporal alignment** requirements
+- **Weekly/monthly granularity** data
+- **Need for feature engineering** (lags, rolling windows, growth rates)
+
+### Educational: Best Practices Reference
+Demonstrates:
+- Preventing temporal leakage in time-series ML
+- TimeSeriesSplit cross-validation
+- Feature engineering for time-series
+- Model saving and reproducibility
+- Comprehensive testing and documentation
+
+---
+
+## Problem Statement
 
 **Research Question:** Which factors correlate with short-term growth in Spotify streams for artists?
 
@@ -75,7 +103,7 @@ Originally developed as a take-home assignment analyzing artist performance data
 
 ---
 
-## 🔬 Methodology
+## Methodology
 
 ### 1. Data Preparation
 
@@ -145,7 +173,7 @@ Originally developed as a take-home assignment analyzing artist performance data
 
 ---
 
-## 🚀 Setup Instructions
+## Setup Instructions
 
 ### Prerequisites
 - Python 3.8+
@@ -181,7 +209,7 @@ data/
 
 ---
 
-## 🎮 How to Run
+## How to Run
 
 ### Basic Usage (Recommended)
 
@@ -195,12 +223,12 @@ poetry run python scripts/streaming_growth_pipeline.py \
 ```
 
 This will:
-- ✅ Load and merge all data sources
-- ✅ Engineer temporal features with proper lagging
-- ✅ Run 5-fold time-series cross-validation
-- ✅ Train all 3 models (Linear, Random Forest, Gradient Boosting)
-- ✅ Generate comprehensive visualizations including CV analysis
-- ✅ Create model comparison report with CV metrics
+- Load and merge all data sources
+- Engineer temporal features with proper lagging
+- Run 5-fold time-series cross-validation
+- Train all 3 models (Linear, Random Forest, Gradient Boosting)
+- Generate comprehensive visualizations including CV analysis
+- Create model comparison report with CV metrics
 
 ### Advanced Options
 
@@ -256,7 +284,7 @@ poetry run python scripts/streaming_growth_pipeline.py \
 
 ---
 
-## 📈 Results & Interpretation
+## Results & Interpretation
 
 ### Output Structure
 
@@ -341,7 +369,7 @@ Gradient Boosting   -0.22 ± 0.29       -209.30    ← Severe overfitting
 
 ---
 
-## 🔧 Technical Details
+## Technical Details
 
 ### Temporal Leakage Prevention
 
@@ -402,7 +430,7 @@ Standard Deviation: 1.2 (normalized distribution)
 
 ---
 
-## 🎓 Key Learnings
+## Key Learnings
 
 1. **Temporal alignment is critical** - Using same-week data causes leakage
 2. **Cross-validation essential for time-series** - Reveals stability issues early
@@ -414,7 +442,7 @@ Standard Deviation: 1.2 (normalized distribution)
 
 ---
 
-## 🚀 Future Improvements & Considerations
+## Future Improvements & Considerations
 
 Based on cross-validation analysis and model performance evaluation:
 
@@ -473,7 +501,7 @@ Based on cross-validation analysis and model performance evaluation:
 
 ---
 
-## 🛠️ Framework Features
+## Framework Features
 
 This project is built on a general-purpose ML framework with:
 
@@ -506,7 +534,7 @@ This project is built on a general-purpose ML framework with:
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ml-framework/
@@ -533,7 +561,7 @@ ml-framework/
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ### Test Suite
 
@@ -566,7 +594,7 @@ See the [Testing](#testing) section for detailed pytest commands and options.
 
 ---
 
-## 📞 Support
+## Support
 
 For questions or issues:
 1. Check the pipeline logs in terminal output
@@ -577,13 +605,13 @@ For questions or issues:
 
 ---
 
-## 📜 License
+## License
 
 This framework is provided for educational and research purposes.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 This is a modular, extensible framework. To contribute:
 
