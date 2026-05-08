@@ -100,7 +100,10 @@ class StreamingGrowthFeatures:
         growth = growth.clip(-10, 10)  # Cap at +/- 1000% change
         
         return growth
-    
+
+    # I have created lagged features for 1, 2, and 4 weeks to capture short-term trends without overfitting.
+    # Lagged features are essential to prevent temporal leakage, ensuring that the model only has access to
+    # information that would have been available at the time of prediction.
     def create_lagged_features(
         self,
         df: pd.DataFrame,
@@ -127,7 +130,7 @@ class StreamingGrowthFeatures:
             if col not in df.columns:
                 logger.warning(f"Column {col} not found, skipping")
                 continue
-            
+
             for lag in lags:
                 lagged_col = f"{col}_lag{lag}"
                 result_df[lagged_col] = result_df.groupby('artist_id')[col].shift(lag)
@@ -202,7 +205,9 @@ class StreamingGrowthFeatures:
             if col not in df.columns:
                 logger.warning(f"Column {col} not found, skipping")
                 continue
-            
+
+            # Izabel This was the first model I have used but shown to be very unstable with outliers and zeros.
+            # Keeping for comparison.
             # Week-over-week growth
             growth_col = f"{col}_growth_1w"
             result_df[growth_col] = self.calculate_growth_rate(result_df, col, periods=1)

@@ -143,3 +143,45 @@ def print_section(title: str, data: dict, width: int = 60):
         else:
             print(f"{key:<30} {str(value):>10}")
     print(f"{'='*width}\n")
+
+
+def save_json(data, file_path, logger=None, description: str = None):
+    """
+    Save data to a JSON file.
+
+    Args:
+        data: Data to save (must be JSON serializable)
+        file_path: Path to the output file (str or Path)
+        logger: Optional logger for logging the save operation
+        description: Optional description for the log message
+    """
+    import json
+
+    path = Path(file_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2, default=str)
+    
+    if logger:
+        desc = description or path.name
+        logger.info(f"Saved {desc} to {path}")
+
+
+def save_dataframe(df, file_path, logger=None, description: str = None, index: bool = False):
+    """
+    Save a pandas DataFrame to CSV.
+
+    Args:
+        df: pandas DataFrame to save
+        file_path: Path to the output file (str or Path)
+        logger: Optional logger for logging the save operation
+        description: Optional description for the log message
+        index: Whether to include the index in the CSV (default: False)
+    """
+    path = Path(file_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(path, index=index)
+    
+    if logger:
+        desc = description or path.name
+        logger.info(f"Saved {desc} to {path}")
