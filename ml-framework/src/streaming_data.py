@@ -454,6 +454,7 @@ class StreamingDataLoader:
         df = streams_df.copy()
         
         # Join social metrics if available
+        # Izabel: LEFT JOIN keep all streaming and week rows, fill missing supplementary data with NaN
         if not social_df.empty:
             social_df = social_df[social_df['artist_id'].isin(sampled_artists)]
             df = pd.merge(
@@ -521,6 +522,8 @@ class StreamingDataLoader:
             ].copy()
             
             # Select engagement and demographic features
+            # TODO: put these in a config or class variable for maintainability (if the string changes in the source,
+            #  we only need to update it in one place (config or class variable) instead of searching through the codebase for all occurrences)
             instagram_features = [
                 'artist_id', 'engagement_rate', 'avg_likes', 'avg_comments', 'avg_views',
                 'notable_users_ratio', 'audience_credibility',
@@ -558,6 +561,9 @@ class StreamingDataLoader:
         logger.info(f"  Weeks: {df['week'].nunique()}")
         logger.info(f"  Date range: {df['week'].min()} to {df['week'].max()}")
         logger.info(f"  Missing values: {df.isnull().sum().sum():,}")
+
+        logger.info(f"Saving final data: {df.shape}")
+        df.to_csv("joined_weekly_data.csv", index=False)
         
         return df
     

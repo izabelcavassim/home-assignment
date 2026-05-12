@@ -13,7 +13,16 @@ from typing import List, Dict, Optional, Tuple
 
 logger = logging.getLogger("ml_framework")
 
-
+#TODO: This class is tidely coupled to the data loading and the model training. It should be refactored to be more
+# modular.
+# Create an abstract DataLoader base class that all data loaders must follow.
+# The DataLoader base class should have the following methods:
+# - load_data(self) -> pd.DataFrame: Load the data from the source
+# - preprocess_data(self, df: pd.DataFrame) -> pd.DataFrame: Preprocess the data
+# - split_data(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]: Split the data into training and testing sets
+# - get_features(self, df: pd.DataFrame) -> pd.DataFrame: Get the features from the data
+# - get_target(self, df: pd.DataFrame) -> pd.Series: Get the target from the data
+# - get_metadata(self, df: pd.DataFrame) -> pd.DataFrame: Get the metadata from the data
 class StreamingGrowthFeatures:
     """
     Engineer features for streaming growth prediction with temporal awareness.
@@ -319,6 +328,7 @@ class StreamingGrowthFeatures:
             keyword in c.lower() for keyword in ['stream', 'follower', 'engagement', 'ticket', 'sales']
         )]
         if key_cols:
+            #  Creating lagged features for key streaming and engagement metrics to capture temporal patterns without leakage.
             result_df = self.create_lagged_features(result_df, key_cols)
             logger.info(f"Created lagged features for {len(key_cols)} columns")
         
@@ -334,12 +344,14 @@ class StreamingGrowthFeatures:
             logger.info(f"Created growth features for {len(growth_cols)} columns")
         
         # 5. Create momentum features
+        # Momentum features can capture acceleration in growth, which may be predictive of future trends.
+        # These features are carefully designed to use only past information to prevent any temporal leakage.
         result_df = self.create_momentum_features(result_df)
         logger.info("Created momentum features")
         
         # Identify feature columns (exclude original data and target)
         # IMPORTANT: Exclude any features derived from the target variable itself
-        # to prevent temporal leakage. Only use external predictors.
+        # to prevent data leakage. Only use external predictors.
         feature_cols = []
         for c in result_df.columns:
             # Include lagged, rolling, growth, momentum features
@@ -395,6 +407,9 @@ class StreamingGrowthFeatures:
         logger.info(f"  Missing in target: {y.isnull().sum():,}")
         
         if drop_na:
+            # Here I am dropping all missing values to ensure the model is trained on complete cases only.
+            # This is crucial for preventing data leakage and ensuring that the model learns from valid patterns in the data.
+            # However, this also means that we may lose some samples, so it's important to monitor how many rows are dropped due to missing values.
             # Drop rows where target or any feature is missing
             valid_idx = (~y.isnull()) & (~X.isnull().any(axis=1))
             X = X[valid_idx]

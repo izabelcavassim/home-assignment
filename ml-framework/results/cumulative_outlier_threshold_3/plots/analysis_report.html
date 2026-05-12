@@ -146,7 +146,7 @@
     <div class="header">
         <h1>🎵 Streaming Growth Analysis Report</h1>
         <p><strong>Output Directory:</strong> results/cumulative_outlier_threshold_3</p>
-        <p><strong>Generated:</strong> 2026-05-07 18:10:12</p>
+        <p><strong>Generated:</strong> 2026-05-12 10:00:31</p>
     </div>
     
     <div class="section">
@@ -186,7 +186,7 @@
             </div>
             <div class="config-item">
                 <span class="config-label">Prediction Horizons</span>
-                <span class="config-value">1, 4, 8 weeks</span>
+                <span class="config-value">N/A</span>
             </div>
             <div class="config-item">
                 <span class="config-label">Lag Features</span>
@@ -206,7 +206,7 @@
             </div>
             <div class="config-item">
                 <span class="config-label">Test Split Ratio</span>
-                <span class="config-value">N/A</span>
+                <span class="config-value">0.2</span>
             </div>
         </div>
         
@@ -248,6 +248,15 @@
                 </tr>
 
                 <tr>
+                    <td><strong>Ridge Regression</strong></td>
+                    <td class="">0.2023</td>
+                    <td class="">0.5908</td>
+                    <td>0.4809</td>
+                    <td>-0.4878 ± 1.3019</td>
+                    <td>0.7222 ± 0.2528</td>
+                </tr>
+
+                <tr>
                     <td><strong>Linear Regression</strong></td>
                     <td class="">0.1493</td>
                     <td class="">0.6101</td>
@@ -271,7 +280,7 @@
         <h2>🔍 Feature Engineering Details</h2>
 
         <p><strong>Total Features Created:</strong> 71</p>
-        <p><strong>Training Samples:</strong> N/A</p>
+        <p><strong>Training Samples:</strong> 468</p>
         <p><strong>Feature Types:</strong></p>
         <ul>
             <li><strong>Lag Features:</strong> Past values (t-1, t-2, t-4)</li>

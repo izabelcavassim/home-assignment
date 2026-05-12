@@ -73,10 +73,15 @@ def check_key_modules():
     print("\nChecking key modules...")
     modules = [
         "src.utils",
-        "src.config",
-        "src.data",
+        #"src.config",
+        #"src.data",
         "src.model",
-        "src.train",
+        "src.generate_html_report",
+        "src.html_report",
+        "src.metrics" ,
+        "src.plotting",
+        "src.streaming_data"
+        #"src.train",
     ]
     
     all_ok = True

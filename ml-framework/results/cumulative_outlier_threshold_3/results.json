@@ -16,11 +16,6 @@
       4,
       8
     ],
-    "prediction_horizons": [
-      1,
-      4,
-      8
-    ],
     "model": "all",
     "cv_folds": 5,
     "seed": 42,
@@ -141,6 +136,111 @@
         {
           "feature": "follower_lang_de_lag1",
           "importance": 0.2635854215877771
+        }
+      ]
+    },
+    "ridge_regression": {
+      "cv_scores": {
+        "r2_mean": -0.4877880023064737,
+        "r2_std": 1.3019061621257653,
+        "rmse_mean": 0.7222208422311258,
+        "rmse_std": 0.25277420803272627,
+        "mae_mean": 0.5145449142113465,
+        "mae_std": 0.17278534402236082,
+        "n_folds": 5
+      },
+      "train_metrics": {
+        "rmse": 0.3934594656434282,
+        "mae": 0.30712144934903607,
+        "r2": 0.763645300659428,
+        "n_samples": 468
+      },
+      "test_metrics": {
+        "rmse": 0.590785219734728,
+        "mae": 0.4809107442706843,
+        "r2": 0.20228197450868213,
+        "n_samples": 117
+      },
+      "feature_importance": [
+        {
+          "feature": "follower_lang_pt_lag2",
+          "importance": 0.22262055543534318
+        },
+        {
+          "feature": "st_num_tickets_lag1",
+          "importance": 0.18929092022572344
+        },
+        {
+          "feature": "follower_lang_pt_lag1",
+          "importance": 0.1848346518025244
+        },
+        {
+          "feature": "dma_count_streams_lag1",
+          "importance": 0.17084437075931727
+        },
+        {
+          "feature": "st_num_tickets_roll8_mean",
+          "importance": 0.1692137751744402
+        },
+        {
+          "feature": "dma_count_streams_lag4",
+          "importance": 0.16653099320603343
+        },
+        {
+          "feature": "follower_african_american_lag1",
+          "importance": 0.16640944874348892
+        },
+        {
+          "feature": "follower_lang_de_lag1",
+          "importance": 0.12256696384380611
+        },
+        {
+          "feature": "follower_lang_en_lag1",
+          "importance": 0.11956494984514396
+        },
+        {
+          "feature": "engagement_rate_roll8_std",
+          "importance": 0.11613482091046803
+        },
+        {
+          "feature": "follower_hispanic_lag1",
+          "importance": 0.11183964553061175
+        },
+        {
+          "feature": "engagement_rate_roll4_std",
+          "importance": 0.11142694967775638
+        },
+        {
+          "feature": "follower_lang_es_lag4",
+          "importance": 0.10555930650889754
+        },
+        {
+          "feature": "st_num_tickets_roll8_std",
+          "importance": 0.09536787291244146
+        },
+        {
+          "feature": "follower_lang_en_lag4",
+          "importance": 0.08811602976267002
+        },
+        {
+          "feature": "follower_asian_lag1",
+          "importance": 0.08504957616665049
+        },
+        {
+          "feature": "follower_african_american_lag2",
+          "importance": 0.0847016228335447
+        },
+        {
+          "feature": "follower_lang_zh_lag2",
+          "importance": 0.07986480664707533
+        },
+        {
+          "feature": "follower_lang_es_lag2",
+          "importance": 0.07985716573653193
+        },
+        {
+          "feature": "follower_lang_en_lag2",
+          "importance": 0.07825121552284005
         }
       ]
     },

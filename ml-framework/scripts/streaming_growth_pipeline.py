@@ -58,7 +58,7 @@ Examples:
   poetry run python scripts/streaming_growth_pipeline.py \\
     --data-dir data/artist_performance \\
     --output results/streaming_growth \\
-    --artist-sample-size 200 \\
+    --artist-sample-size 200 \\  
     --model random_forest
 
   # With custom lags and windows
@@ -290,7 +290,9 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     
     try:
+        ############################
         # Phase 1: Load and prepare data
+        ############################
         logger.info("\n" + "=" * 80)
         logger.info("Phase 1: Data Loading")
         logger.info("=" * 80)
@@ -307,8 +309,10 @@ def main():
         
         # Save sampled artist IDs
         save_json(data_loader.sampled_artists, output_dir / "sampled_artists.json", logger, "sampled artist IDs")
-        
+
+        ############################
         # Phase 2: Feature engineering
+        ############################
         logger.info("\n" + "=" * 80)
         logger.info("Phase 2: Feature Engineering")
         logger.info("=" * 80)
@@ -342,8 +346,10 @@ def main():
                 threshold=args.outlier_threshold,
                 logger=logger
             )
-        
+
+        ############################
         # Phase 3: Train/test split (temporal)
+        ############################
         logger.info("\n" + "=" * 80)
         logger.info("Phase 3: Temporal Train/Test Split")
         logger.info("=" * 80)
@@ -370,13 +376,15 @@ def main():
         X_test_scaled = scaler.transform(X_test)
         
         logger.info("Applied StandardScaler to features")
-        
+
+        ############################
         # Phase 4.5: Cross-Validation (TimeSeriesSplit)
+        ############################
         logger.info("\n" + "=" * 80)
         logger.info("Phase 4.5: Time Series Cross-Validation")
         logger.info("=" * 80)
 
-        # Izabel: TimeSeriesSplit is crucial for temporal data to prevent leakage.
+        # Izabel: TimeSeriesSplit is crucial for preventing leakage when dealing with temporal data.
         # Each fold trains on past data and validates on future data, mimicking real-world forecasting scenarios.
         # This ensures that our evaluation metrics reflect true predictive performance without peeking into the future.
         tscv = TimeSeriesSplit(n_splits=args.cv_folds)
@@ -386,8 +394,10 @@ def main():
         # Determine which models to run
         model_config = {
             'linear_regression': {'model_type': 'linear_regression'},
+            'ridge_regression': {'model_type': 'ridge_regression', 'alpha': 10.0},
             'random_forest': {'model_type': 'random_forest_regressor', 'n_estimators': 100},
-            'gradient_boosting': {'model_type': 'gradient_boosting_regressor', 'n_estimators': 100}
+            'gradient_boosting': {'model_type': 'gradient_boosting_regressor', 'n_estimators': 100} # all the other
+            # parameters are set to default in the model registry, but can be customized here if desired (e.g., max_depth, learning_rate, etc.)
         }
         
         if args.model == 'all':
@@ -398,8 +408,10 @@ def main():
         
         # Store all results for comparison
         all_results = {}
-        
+
+        ############################
         # Phase 5 & 6: Train and evaluate each model
+        ############################    Q
         for model_name in models_to_run:
             logger.info("\n" + "=" * 80)
             logger.info(f"Training Model: {model_name}")
@@ -587,7 +599,8 @@ def main():
             X_train=X_train,
             y_train=y_train,
             feature_cols=feature_cols,
-            config=pipeline_config
+            config=pipeline_config,
+            meta_train=meta_train
         )
         
         logger.info("\n" + "=" * 80)

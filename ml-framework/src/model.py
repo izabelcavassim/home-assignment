@@ -10,7 +10,7 @@ class BaseModel(ABC):
     """
     Abstract base class for all models in the framework.
 
-    Provides a unified interface for both scikit-learn and PyTorch models.
+    Provides a unified interface for both scikit-learn and PyTorch models, making it easier to manage different types of models within the same framework.
     """
 
     def __init__(self, name: str, model_type: str):
@@ -220,6 +220,12 @@ class ModelRegistry:
             sklearn_model = LinearRegression(**kwargs)
             return ScikitLearnModel(sklearn_model, "linear_regression")
 
+        elif model_type == "ridge_regression":
+            from sklearn.linear_model import Ridge
+
+            sklearn_model = Ridge(**kwargs)
+            return ScikitLearnModel(sklearn_model, "ridge_regression")
+
         elif model_type == "random_forest":
             from sklearn.ensemble import RandomForestClassifier
 
@@ -249,6 +255,22 @@ class ModelRegistry:
 
             sklearn_model = GradientBoostingRegressor(**kwargs)
             return ScikitLearnModel(sklearn_model, "gradient_boosting_regressor")
+        
+        # TODO: Add xgboost model
+        # How one would add a new model to the registry is by adding a new elif statement here.
+        # The model type should be the name of the model as it will be used to create the model instance.
+        # The kwargs are the arguments to pass to the model constructor.
+        # The return value should be a ScikitLearnModel instance.
+        # One need to import the model from the sklearn library and then create the model instance.
+        # The ScikitLearnModel instance should be created by calling the ScikitLearnModel constructor with the model instance and the name of the model.
+        # The ScikitLearnModel constructor should be defined in the model.py file.
+        # The ScikitLearnModel constructor should take the model instance and the name of the model as arguments.
+        # The ScikitLearnModel constructor should call the super() constructor with the name of the model and the model type.
+        elif model_type == "xgboost":
+            from xgboost import XGBRegressor
+
+            sklearn_model = XGBRegressor(**kwargs)
+            return ScikitLearnModel(sklearn_model, "xgboost")
 
         else:
             raise ValueError(f"Unknown model type: {model_type}")

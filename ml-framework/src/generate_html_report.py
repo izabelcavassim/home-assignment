@@ -305,6 +305,44 @@ def generate_html_report(results_dir: Path, output_file: Path):
         </div>
 """
         
+        # Add linear vs non-linear comparison plots if they exist
+        linear_plot = plots_dir / "model_comparison_linear.png"
+        nonlinear_plot = plots_dir / "model_comparison_nonlinear.png"
+        
+        if linear_plot.exists() or nonlinear_plot.exists():
+            html += """
+        <h3>Linear vs Non-Linear Model Comparison</h3>
+        <p>Separating models by type helps understand how different algorithmic approaches perform on this data:</p>
+        <ul>
+            <li><strong>Linear Models:</strong> Assume linear relationships between features and target. 
+            Coefficients are directly interpretable as effect sizes.</li>
+            <li><strong>Tree-Based Models:</strong> Can capture non-linear patterns and feature interactions 
+            automatically, but are less interpretable.</li>
+        </ul>
+"""
+        
+        if linear_plot.exists():
+            img_data = encode_image(linear_plot)
+            html += f"""
+        <h4>Linear Models (Linear Regression, Ridge)</h4>
+        <div class="plot-container">
+            <img src="data:image/png;base64,{img_data}" alt="Linear Models Comparison">
+            <div class="plot-caption">Performance of linear models. These assume linear feature-target relationships 
+            and provide interpretable coefficients.</div>
+        </div>
+"""
+        
+        if nonlinear_plot.exists():
+            img_data = encode_image(nonlinear_plot)
+            html += f"""
+        <h4>Tree-Based Models (Random Forest, Gradient Boosting)</h4>
+        <div class="plot-container">
+            <img src="data:image/png;base64,{img_data}" alt="Tree-Based Models Comparison">
+            <div class="plot-caption">Performance of tree-based ensemble models. These capture non-linear patterns 
+            and feature interactions automatically.</div>
+        </div>
+"""
+        
         # Create comparison table
         html += """
         <h3>Performance Metrics</h3>
@@ -529,6 +567,54 @@ def generate_html_report(results_dir: Path, output_file: Path):
             <li>Extend to multi-platform analysis</li>
             <li>Develop artist-segment-specific models</li>
         </ul>
+    </div>
+
+    <div class="section">
+        <h2>📊 Feature Importance Comparison Across Models</h2>
+        <p>This side-by-side comparison shows the top 10 most important features for each model, 
+        making it easy to see which features are consistently important across different algorithms 
+        and which are model-specific.</p>
+"""
+    
+    # Add side-by-side feature importance plot if it exists
+    side_by_side_plot = plots_dir / "feature_importance_side_by_side.png"
+    if side_by_side_plot.exists():
+        img_data = encode_image(side_by_side_plot)
+        html += f"""
+        <div class="plot-container">
+            <img src="data:image/png;base64,{img_data}" alt="Feature Importance Side-by-Side Comparison">
+            <div class="plot-caption">Side-by-side comparison of top 10 features for each model. 
+            Features appearing across multiple models are robust predictors.</div>
+        </div>
+        
+        <div class="interpretation">
+            <h3>How to Interpret This Comparison</h3>
+            <ul>
+                <li><strong>Consistent Features:</strong> Features that appear in the top 10 across all models 
+                are robust predictors regardless of the algorithm used.</li>
+                <li><strong>Linear vs Tree Models:</strong> Linear models (Linear/Ridge Regression) show 
+                coefficient magnitudes, while tree models (Random Forest, Gradient Boosting) show 
+                split-based importance.</li>
+                <li><strong>Model-Specific Features:</strong> Features that rank high in only one model 
+                may indicate algorithm-specific patterns (e.g., non-linear relationships captured by trees).</li>
+            </ul>
+        </div>
+"""
+    
+    # Also add the combined grouped bar chart if it exists
+    combined_plot = plots_dir / "combined_feature_importance.png"
+    if combined_plot.exists():
+        img_data = encode_image(combined_plot)
+        html += f"""
+        <h3>Grouped Comparison View</h3>
+        <div class="plot-container">
+            <img src="data:image/png;base64,{img_data}" alt="Combined Feature Importance">
+            <div class="plot-caption">Grouped bar chart showing feature importance values across all models 
+            for direct numerical comparison.</div>
+        </div>
+"""
+    
+    html += """
     </div>
 
     <div class="section">
